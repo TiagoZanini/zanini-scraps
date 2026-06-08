@@ -834,12 +834,12 @@ def mp_webhook():
                     listing.status = 'reserved'
 
             # Notificar comprador e vendedor
-            Notification(
+            db.session.add(Notification(
                 user_id=tx.buyer_id, type='payment',
                 title='Pagamento confirmado!',
                 content=f'Seu pagamento de { brl(tx.gross_amount) } foi confirmado pelo Mercado Pago.',
                 link=url_for('transaction_detail', uid=tx.uid)
-            )
+            ))
             db.session.add(Notification(
                 user_id=tx.seller_id, type='payment',
                 title='Pagamento recebido em escrow!',
