@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Transações — {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="page-content">
+    <h1 class="page-title" style="margin-bottom:2rem;">💳 Transações</h1>
+
+    {% if transactions %}
+    <div class="table-wrap">
+        <table style="width:100%;border-collapse:collapse;">
+            <thead>
+                <tr style="border-bottom:1px solid var(--border);">
+                    <th style="color:var(--text-muted);background:var(--bg-secondary);border:none;text-align:left;padding:.75rem;">Anúncio</th>
+                    <th style="color:var(--text-muted);background:var(--bg-secondary);border:none;text-align:left;padding:.75rem;">Parte</th>
+                    <th style="color:var(--text-muted);background:var(--bg-secondary);border:none;text-align:right;padding:.75rem;white-space:nowrap;">Valor Bruto</th>
+                    <th style="color:var(--text-muted);background:var(--bg-secondary);border:none;text-align:right;padding:.75rem;white-space:nowrap;">Comissão</th>
+                    <th style="color:var(--text-muted);background:var(--bg-secondary);border:none;text-align:right;padding:.75rem;white-space:nowrap;">Valor Líquido</th>
+                    <th style="color:var(--text-muted);background:var(--bg-secondary);border:none;text-align:left;padding:.75rem;">Pagamento</th>
+                    <th style="color:var(--text-muted);background:var(--bg-secondary);border:none;text-align:left;padding:.75rem;">Logístico</th>
+                    <th style="color:var(--text-muted);background:var(--bg-secondary);border:none;text-align:center;padding:.75rem;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tx in transactions %}
+                <tr style="border-bottom:1px solid var(--border);">
+                    <td style="color:var(--text-primary);padding:1rem .75rem;">
+                        {{ tx.proposal.listing.title[:30] }}{% if tx.proposal.listing.title|length > 30 %}...{% endif %}
+                    </td>
+                    <td style="color:var(--text-secondary);padding:1rem .75rem;font-size:.85rem;">
+                        {% if current_user.id == tx.buyer.id %}Você (comprador){% else %}Você (vendedor){% endif %}
+                    </td>
+                    <td style="color:var(--text-primary);padding:1rem .75rem;font-weight:600;text-align:right;white-space:nowrap;">
+                        {{ tx.gross_amount|brl }}
+                    </td>
+                    <td style="color:var(--text-muted);padding:1rem .75rem;font-size:.9rem;text-align:right;white-space:nowrap;">
+                        − {{ tx.commission|brl }}
+                    </td>
+                    <td style="color:var(--accent);padding:1rem .75rem;font-weight:600;text-align:right;white-space:nowrap;">
+                        {{ tx.net_amount|brl }}
+                    </td>
+                    <td style="padding:1rem .75rem;">
+                        <span class="badge-status {% if tx.payment_status == 'released' %}badge-completed{% elif tx.payment_status in ['escrow','awaiting_payment','pending'] %}badge-pending{% else %}badge-failed{% endif %}">
+                            {% if tx.payment_status == 'pending' %}Pendente
+                            {% elif tx.payment_status == 'awaiting_payment' %}Aguardando
+                            {% elif tx.payment_status == 'escrow' %}Em Custódia
+                            {% elif tx.payment_status == 'released' %}Liberado
+                            {% else %}{{ tx.payment_status }}{% endif %}
+                        </span>
+                    </td>
+                    <td style="padding:1rem .75rem;">
+                        <span class="badge-status {% if tx.logistics_status == 'confirmed' %}badge-completed{% else %}badge-pending{% endif %}">
+                            {% if tx.logistics_status == 'pending' %}Pendente
+                            {% elif tx.logistics_status == 'scheduled' %}Agendado
+                            {% elif tx.logistics_status == 'in_transit' %}Em Trânsito
+                            {% elif tx.logistics_status == 'confirmed' %}Entregue
+                            {% else %}{{ tx.logistics_status }}{% endif %}
+                        </span>
+                    </td>
+                    <td style="padding:1rem .75rem;text-align:center;">
+                        <a href="{{ url_for('transaction_detail', uid=tx.uid) }}" style="color:var(--accent);text-decoration:none;">→</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding:4rem 2rem;text-align:center;">
+        <div style="font-size:3rem;margin-bottom:1rem;">💳</div>
+        <p style="color:var(--text-muted);">Nenhuma transação ainda. Aceite uma proposta para criar uma.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

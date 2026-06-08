@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}{{ platform_name }} - Compre e Venda Sobras Industriais{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<section class="hero">
+    <div class="container">
+        <h1>Compre e venda <span>sobras industriais</span><br>com segurança em todo o Brasil</h1>
+        <p style="font-size:1.15rem;font-weight:600;color:var(--accent);margin-bottom:8px;letter-spacing:.3px;">Onde sua sobra vira matéria-prima.</p>
+        <p>Marketplace B2B com pagamento escrow, compliance nativo e logística integrada.</p>
+        <form class="hero-search" action="{{ url_for('marketplace') }}" method="GET">
+            <input type="text" name="q" placeholder="Buscar material, tipo, cidade..." autocomplete="off">
+            <button type="submit" class="btn btn-primary btn-lg">Buscar</button>
+        </form>
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <div class="number">{{ stats.total_listings }}</div>
+                <div class="label">Lotes Ativos</div>
+            </div>
+            <div class="hero-stat">
+                <div class="number">{{ stats.total_users }}</div>
+                <div class="label">Usuários</div>
+            </div>
+            <div class="hero-stat">
+                <div class="number">{{ stats.total_transactions }}</div>
+                <div class="label">Transações</div>
+            </div>
+            <div class="hero-stat">
+                <div class="number">{{ stats.total_gmv|brl }}</div>
+                <div class="label">GMV Total</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Featured -->
+{% if featured %}
+<section class="section">
+    <div class="container">
+        <h2 class="section-title">Destaques</h2>
+        <p class="section-subtitle">Lotes em destaque selecionados para você</p>
+        <div class="grid grid-3">
+            {% for listing in featured %}
+            {% include "listings/_card.html" %}
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- Recent -->
+<section class="section">
+    <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
+            <div>
+                <h2 class="section-title">Lotes Recentes</h2>
+                <p class="section-subtitle" style="margin-bottom: 0;">Novos materiais publicados na plataforma</p>
+            </div>
+            <a href="{{ url_for('marketplace') }}" class="btn btn-secondary">Ver Todos →</a>
+        </div>
+        {% if recent %}
+        <div class="grid grid-4">
+            {% for listing in recent %}
+            {% include "listings/_card.html" %}
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="icon">📦</div>
+            <h3>Nenhum lote publicado ainda</h3>
+            <p>Seja o primeiro a publicar um lote de sobras industriais!</p>
+            <a href="{{ url_for('register') }}" class="btn btn-primary" style="margin-top:16px;">Cadastre-se Agora</a>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- How it Works -->
+<section class="section" style="background: var(--bg-secondary); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+    <div class="container">
+        <h2 class="section-title" style="text-align:center;">Como Funciona</h2>
+        <p class="section-subtitle" style="text-align:center;">Publique, negocie e venda em poucos passos</p>
+        <div class="grid grid-4">
+            <div class="card" style="text-align:center;">
+                <div class="card-body">
+                    <div style="font-size:40px; margin-bottom:16px;">📝</div>
+                    <h3 style="font-size:1rem; margin-bottom:8px;">1. Cadastre-se</h3>
+                    <p style="color:var(--text-muted); font-size:0.85rem;">Crie sua conta em menos de 3 minutos como fornecedor ou comprador.</p>
+                </div>
+            </div>
+            <div class="card" style="text-align:center;">
+                <div class="card-body">
+                    <div style="font-size:40px; margin-bottom:16px;">📦</div>
+                    <h3 style="font-size:1rem; margin-bottom:8px;">2. Publique ou Busque</h3>
+                    <p style="color:var(--text-muted); font-size:0.85rem;">Anuncie suas sobras ou encontre o material que precisa com filtros avançados.</p>
+                </div>
+            </div>
+            <div class="card" style="text-align:center;">
+                <div class="card-body">
+                    <div style="font-size:40px; margin-bottom:16px;">🤝</div>
+                    <h3 style="font-size:1rem; margin-bottom:8px;">3. Negocie</h3>
+                    <p style="color:var(--text-muted); font-size:0.85rem;">Faça propostas, contrapropostas e negocie via chat integrado.</p>
+                </div>
+            </div>
+            <div class="card" style="text-align:center;">
+                <div class="card-body">
+                    <div style="font-size:40px; margin-bottom:16px;">💰</div>
+                    <h3 style="font-size:1rem; margin-bottom:8px;">4. Pague e Receba</h3>
+                    <p style="color:var(--text-muted); font-size:0.85rem;">Pagamento seguro via Pix/Cartão com escrow e split automático de 5%.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Categories -->
+<section class="section">
+    <div class="container">
+        <h2 class="section-title" style="text-align:center;">Categorias de Materiais</h2>
+        <p class="section-subtitle" style="text-align:center;">Encontre o material ideal para seu negócio</p>
+        <div class="grid grid-4">
+            {% for cat in categories %}
+            <a href="{{ url_for('marketplace', category=cat.id) }}" class="card" style="text-align:center; text-decoration:none;">
+                <div class="card-body">
+                    <div style="font-size:36px; margin-bottom:12px;">{{ cat.icon or '📦' }}</div>
+                    <h3 style="font-size:0.95rem; color:var(--text-primary);">{{ cat.name }}</h3>
+                    <p style="font-size:0.8rem; color:var(--text-muted);">{{ cat.listings.filter_by(status='active').count() }} lotes</p>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

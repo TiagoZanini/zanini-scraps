@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ platform_name }}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="theme-color" content="#0a0e17">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="{{ url_for('home') }}" class="navbar-brand">
+            <div class="logo-icon">♻</div>
+            {{ platform_name }}
+        </a>
+        <ul class="navbar-nav">
+            <li><a href="{{ url_for('marketplace') }}" class="{{ 'active' if request.endpoint == 'marketplace' }}">Marketplace</a></li>
+            {% if current_user.is_authenticated %}
+            <li><a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint == 'dashboard' }}">Dashboard</a></li>
+            <li><a href="{{ url_for('listing_create') }}" class="{{ 'active' if request.endpoint == 'listing_create' }}">Publicar Lote</a></li>
+            <li><a href="{{ url_for('proposals_list') }}" class="{{ 'active' if request.endpoint == 'proposals_list' }}">Propostas</a></li>
+            <li><a href="{{ url_for('transactions_list') }}" class="{{ 'active' if request.endpoint == 'transactions_list' }}">Transações</a></li>
+            {% endif %}
+        </ul>
+        <div class="navbar-actions">
+            {% if current_user.is_authenticated %}
+            <a href="{{ url_for('messages_list') }}" class="nav-icon" title="Mensagens">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                {% if unread_messages > 0 %}<span class="badge">{{ unread_messages }}</span>{% endif %}
+            </a>
+            <a href="{{ url_for('notifications') }}" class="nav-icon" title="Notificações">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                {% if unread_notifications > 0 %}<span class="badge">{{ unread_notifications }}</span>{% endif %}
+            </a>
+            <div class="user-menu" onclick="document.getElementById('user-dropdown').classList.toggle('show')">
+                <div class="user-avatar">{{ current_user.display_name[0]|upper }}</div>
+                {{ current_user.display_name }}
+            </div>
+            <div id="user-dropdown" class="dropdown-menu">
+                <a href="{{ url_for('profile') }}">Meu Perfil</a>
+                {% if current_user.is_admin %}
+                <a href="{{ url_for('admin_dashboard') }}">Painel Admin</a>
+                {% endif %}
+                <a href="{{ url_for('logout') }}">Sair</a>
+            </div>
+            {% else %}
+            <a href="{{ url_for('login') }}" class="btn btn-secondary btn-sm">Entrar</a>
+            <a href="{{ url_for('register') }}" class="btn btn-primary btn-sm">Cadastrar</a>
+            {% endif %}
+        </div>
+        <button class="mobile-menu-btn" onclick="document.querySelector('.navbar-nav').classList.toggle('mobile-show')">☰</button>
+    </nav>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="container" style="padding-top: 16px;">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <!-- Content -->
+    {% block content %}{% endblock %}
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div>
+                    <div class="footer-brand">♻ {{ platform_name }}</div>
+                    <p class="footer-desc">Sistema Nacional de Comercialização de Sobras Industriais. Conectando fornecedores e compradores com segurança, compliance e logística integrada.</p>
+                </div>
+                <div class="footer-col">
+                    <h4>Plataforma</h4>
+                    <ul>
+                        <li><a href="{{ url_for('marketplace') }}">Marketplace</a></li>
+                        <li><a href="#">Como Funciona</a></li>
+                        <li><a href="#">Planos</a></li>
+                        <li><a href="#">API</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Materiais</h4>
+                    <ul>
+                        <li><a href="#">Metais</a></li>
+                        <li><a href="#">Plásticos</a></li>
+                        <li><a href="#">Madeira</a></li>
+                        <li><a href="#">Construção</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Suporte</h4>
+                    <ul>
+                        <li><a href="#">Central de Ajuda</a></li>
+                        <li><a href="#">Termos de Uso</a></li>
+                        <li><a href="#">Política de Privacidade</a></li>
+                        <li><a href="#">Contato</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <span>&copy; {{ current_year }} {{ platform_name }} — Todos os direitos reservados</span>
+                <span>Economia Circular &bull; Pagamento Seguro &bull; Logística Integrada</span>
+            </div>
+            <div class="dev-credit">
+                Desenvolvido por Grupo Zanini S.A. — Direitos reservados à Zanini Business — Inventor Tiago Lourenço Zanini
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}Publicar Lote - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="container page-content">
+    <div class="page-header">
+        <h1 class="page-title">Publicar Lote de Sobras</h1>
+        <p class="page-subtitle">Anuncie sobras de obra, excedentes e materiais de construção civil</p>
+    </div>
+    <div style="max-width:720px;">
+        <form method="POST" enctype="multipart/form-data">
+            <div class="card" style="margin-bottom:24px;">
+                <div class="card-header">Informações do Material</div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label class="form-label">Título do Anúncio *</label>
+                        <input type="text" name="title" class="form-control" placeholder="Ex: Vergalhão CA-50 12mm — Sobra de obra — 2.400kg" required>
+                        <small class="form-text">Seja específico: material + especificação + quantidade aproximada</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Descrição técnica</label>
+                        <textarea name="description" class="form-control" rows="4" placeholder="Descreva o material: especificação técnica, dimensões, estado de conservação, como foi originado..."></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Categoria</label>
+                            <select name="category_id" class="form-control">
+                                <option value="">Selecione</option>
+                                {% for cat in categories %}
+                                <option value="{{ cat.id }}">{{ cat.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Tipo de Material</label>
+                            <input type="text" name="material_type" class="form-control" placeholder="Ex: Vergalhão CA-50, Bloco cerâmico, Madeira pinus...">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Condição do material *</label>
+                        <select name="condition" class="form-control">
+                            <option value="novo">Novo — sem uso, embalagem original ou estoque excedente</option>
+                            <option value="seminovo" selected>Seminovo — retirado de obra, bom estado</option>
+                            <option value="usado">Usado — marcas de uso, funcional</option>
+                            <option value="sucata">Reaproveitável — para desmonte ou reciclagem</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom:24px;">
+                <div class="card-header">Quantidade e Preço</div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Quantidade *</label>
+                            <input type="number" name="quantity" class="form-control" step="0.01" placeholder="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Unidade</label>
+                            <select name="unit" class="form-control">
+                                <option value="kg">Quilograma (kg)</option>
+                                <option value="ton">Tonelada (ton)</option>
+                                <option value="un">Unidade (un)</option>
+                                <option value="m2">Metro² (m²)</option>
+                                <option value="m3">Metro³ (m³)</option>
+                                <option value="ml">Metro linear (ml)</option>
+                                <option value="lt">Litro (lt)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Preço (R$) *</label>
+                            <input type="number" name="price" class="form-control" step="0.01" placeholder="0,00" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Tipo de Preço</label>
+                            <select name="price_type" class="form-control">
+                                <option value="total">Preço Total do Lote</option>
+                                <option value="por_unidade">Preço por Unidade</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Pedido Mínimo</label>
+                        <input type="number" name="min_order" class="form-control" step="0.01" value="0" placeholder="0 = sem mínimo">
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom:24px;">
+                <div class="card-header">Localização e Logística</div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Cidade</label>
+                            <input type="text" name="city" class="form-control" value="{{ current_user.city or '' }}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Estado</label>
+                            <select name="state" class="form-control">
+                                <option value="">Selecione</option>
+                                {% for uf in ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'] %}
+                                <option value="{{ uf }}" {{ 'selected' if current_user.state == uf }}>{{ uf }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">CEP</label>
+                            <input type="text" name="cep" class="form-control" value="{{ current_user.cep or '' }}">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tipo de Entrega</label>
+                        <select name="delivery_type" class="form-control">
+                            <option value="retirada">Retirada no Local</option>
+                            <option value="entrega">Entrega pelo Vendedor</option>
+                            <option value="ambos">Ambos</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom:24px;border-left:4px solid var(--accent);">
+                <div class="card-header" style="font-weight:700;">📋 Origem, Retirada e Disponibilidade</div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label class="form-label">Origem da sobra *</label>
+                        <textarea name="origin_declaration" class="form-control" rows="2" placeholder="Ex: Sobra de obra de alvenaria estrutural, canteiro Rua X, n° Y. Material retirado após conclusão da fundação." required></textarea>
+                        <small class="form-text">Descreva de onde vem o material — obra, depósito, produção, etc. Aumenta a confiança do comprador.</small>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Quem realiza a retirada/entrega</label>
+                            <select name="who_picks_up" class="form-control">
+                                <option value="comprador">Comprador retira no local</option>
+                                <option value="vendedor">Vendedor entrega (frete a combinar)</option>
+                                <option value="negociavel">A combinar entre as partes</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Disponibilidade</label>
+                            <input type="text" name="availability" class="form-control" placeholder="Ex: Imediata, A partir de 20/07, Fins de semana">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Observações para o comprador</label>
+                        <textarea name="observations" class="form-control" rows="2" placeholder="Ex: Material está em pátio coberto. Trazer caminhão basculante. Contato no canteiro somente pela manhã."></textarea>
+                    </div>
+                    <div class="form-check" style="margin-top:8px;">
+                        <input type="checkbox" name="has_invoice" id="has_invoice" value="1">
+                        <label for="has_invoice" style="font-weight:600;">✓ Possuo nota fiscal de origem deste material</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom:24px;border-left:4px solid #f59e0b;">
+                <div class="card-header" style="font-weight:700;">📸 Fotos do Material <span style="color:#dc2626;font-size:0.8rem;margin-left:8px;">Recomendado — lotes com foto vendem 3× mais rápido</span></div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label class="form-label">Selecione até 5 fotos (a primeira será a capa do anúncio)</label>
+                        <input type="file" name="images" class="form-control" accept="image/*" multiple>
+                        <p class="form-text">📌 Dicas: fotografe o lote completo, detalhe do material e a etiqueta/nota se houver. JPG ou PNG, máx. 16MB cada.</p>
+                    </div>
+                </div>
+            </div>
+
+            <input type="hidden" name="status" value="active">
+            <div style="display:flex; gap:12px;">
+                <button type="submit" class="btn btn-primary btn-lg">Publicar Anúncio</button>
+                <button type="submit" name="status" value="draft" class="btn btn-secondary btn-lg">Salvar Rascunho</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

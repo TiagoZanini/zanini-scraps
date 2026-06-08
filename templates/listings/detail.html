@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+{% block title %}{{ listing.title }} - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="container page-content">
+    <div style="margin-bottom:16px;">
+        <a href="{{ url_for('marketplace') }}" style="color:var(--text-muted); font-size:0.85rem;">← Voltar ao Marketplace</a>
+    </div>
+    <div class="detail-layout">
+        <!-- Left: Gallery -->
+        <div>
+            <div class="detail-gallery">
+                <div class="main-image" id="mainImage">
+                    {% if listing.images.first() %}
+                    <img src="{{ listing.main_image }}" alt="{{ listing.title }}" id="mainImg">
+                    {% else %}
+                    <div class="no-image-svg" style="height:400px;">📦</div>
+                    {% endif %}
+                </div>
+                {% if listing.images.count() > 1 %}
+                <div class="detail-thumbs">
+                    {% for img in listing.images.all() %}
+                    <img src="{{ img.path }}" alt="Foto {{ loop.index }}" onclick="document.getElementById('mainImg').src='{{ img.path }}'" class="{{ 'active' if img.is_main }}">
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Description -->
+            <div class="card" style="margin-top:24px;">
+                <div class="card-header">Descrição</div>
+                <div class="card-body">
+                    <p style="white-space:pre-wrap;">{{ listing.description or 'Sem descrição fornecida.' }}</p>
+                </div>
+            </div>
+
+            <!-- Bloco Origem e Retirada -->
+            <div class="card" style="margin-top:16px;border-left:4px solid var(--accent);">
+                <div class="card-header" style="font-weight:700;">📋 Origem e Retirada</div>
+                <div class="card-body">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                        <div>
+                            <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:3px;">Local de origem</div>
+                            <div style="font-weight:600;font-size:0.9rem;">{{ listing.city or '—' }}{% if listing.state %}/{{ listing.state }}{% endif %}</div>
+                        </div>
+                        <div>
+                            <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:3px;">Condição do material</div>
+                            <div style="font-weight:600;font-size:0.9rem;">
+                                {% if listing.condition == 'novo' %}Novo (sem uso)
+                                {% elif listing.condition == 'seminovo' %}Seminovo
+                                {% elif listing.condition == 'usado' %}Usado
+                                {% elif listing.condition == 'sucata' %}Reaproveitável
+                                {% else %}{{ listing.condition|capitalize if listing.condition else '—' }}{% endif %}
+                            </div>
+                        </div>
+                        <div>
+                            <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:3px;">Quem retira</div>
+                            <div style="font-weight:600;font-size:0.9rem;">
+                                {% if listing.who_picks_up == 'comprador' %}Comprador retira no local
+                                {% elif listing.who_picks_up == 'vendedor' %}Vendedor entrega
+                                {% else %}A combinar entre as partes{% endif %}
+                            </div>
+                        </div>
+                        <div>
+                            <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:3px;">Nota de origem</div>
+                            <div style="font-weight:600;font-size:0.9rem;">
+                                {% if listing.has_invoice %}
+                                <span style="color:#065f46;">✓ Nota fiscal disponível</span>
+                                {% else %}
+                                <span style="color:#92400e;">Sem nota declarada</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% if listing.availability %}
+                        <div style="grid-column:span 2;">
+                            <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:3px;">Disponibilidade</div>
+                            <div style="font-weight:600;font-size:0.9rem;">{{ listing.availability }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% if listing.origin_declaration %}
+                    <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+                        <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">Declaração de origem</div>
+                        <p style="font-size:0.9rem;margin:0;">{{ listing.origin_declaration }}</p>
+                    </div>
+                    {% endif %}
+                    {% if listing.observations %}
+                    <div style="margin-top:10px;padding:10px;background:var(--bg-secondary);border-radius:6px;">
+                        <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">⚠ Observações do vendedor</div>
+                        <p style="font-size:0.9rem;margin:0;">{{ listing.observations }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Info + Proposal -->
+        <div class="detail-info">
+            <div class="card">
+                <div class="card-body">
+                    {% if listing.category %}
+                    <div style="font-size:0.8rem; color:var(--accent); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">{{ listing.category.name }}</div>
+                    {% endif %}
+                    <h1 style="font-size:1.5rem; margin-bottom:12px;">{{ listing.title }}</h1>
+
+                    <div class="detail-price">{{ listing.price|brl }}
+                        {% if listing.price_type == 'por_unidade' %}
+                        <span style="font-size:1rem; color:var(--text-muted);">/ {{ listing.unit }}</span>
+                        {% endif %}
+                    </div>
+                    <p style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">Comissão plataforma: 5% ({{ (listing.price * 0.05)|brl }})</p>
+
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:20px;">
+                        <div style="padding:12px; background:var(--bg-secondary); border-radius:var(--radius-sm);">
+                            <div style="font-size:0.75rem; color:var(--text-muted);">Material</div>
+                            <div style="font-weight:600;">{{ listing.material_type or '—' }}</div>
+                        </div>
+                        <div style="padding:12px; background:var(--bg-secondary); border-radius:var(--radius-sm);">
+                            <div style="font-size:0.75rem; color:var(--text-muted);">Condição</div>
+                            <div style="font-weight:600;">{{ listing.condition|capitalize if listing.condition else '—' }}</div>
+                        </div>
+                        <div style="padding:12px; background:var(--bg-secondary); border-radius:var(--radius-sm);">
+                            <div style="font-size:0.75rem; color:var(--text-muted);">Quantidade</div>
+                            <div style="font-weight:600;">{{ listing.quantity }} {{ listing.unit }}</div>
+                        </div>
+                        <div style="padding:12px; background:var(--bg-secondary); border-radius:var(--radius-sm);">
+                            <div style="font-size:0.75rem; color:var(--text-muted);">Entrega</div>
+                            <div style="font-weight:600;">{{ listing.delivery_type|capitalize }}</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:16px; padding:12px; background:var(--bg-secondary); border-radius:var(--radius-sm);">
+                        <div style="font-size:0.75rem; color:var(--text-muted);">Localização</div>
+                        <div style="font-weight:600;">📍 {{ listing.city or '—' }}{% if listing.state %} / {{ listing.state }}{% endif %}</div>
+                    </div>
+
+                    <div style="display:flex; gap:8px; margin-top:16px; font-size:0.8rem; color:var(--text-muted);">
+                        <span>👁 {{ listing.views }} views</span>
+                        <span>❤ {{ listing.favorites }} favoritos</span>
+                        <span>📅 {{ listing.created_at.strftime('%d/%m/%Y') }}</span>
+                    </div>
+
+                    {% if current_user.is_authenticated %}
+                    <div style="margin-top:16px;">
+                        <button class="btn btn-secondary btn-sm" onclick="toggleFavorite({{ listing.id }})">
+                            {{ '❤ Favorito' if is_favorited else '♡ Favoritar' }}
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Seller -->
+            <div class="card">
+                <div class="card-header">Vendedor</div>
+                <div class="card-body">
+                    <div class="detail-seller">
+                        <div class="user-avatar" style="width:48px; height:48px; font-size:18px;">{{ listing.seller.display_name[0]|upper }}</div>
+                        <div>
+                            <a href="{{ url_for('seller_profile', uid=listing.seller.uid) }}" style="font-weight:600;">{{ listing.seller.name }}</a>
+                            <div style="font-size:0.8rem; color:var(--text-muted);">📍 {{ listing.seller.city or '—' }}{% if listing.seller.state %}/{{ listing.seller.state }}{% endif %}</div>
+                            {% if listing.seller.is_verified %}
+                            <span class="badge-status badge-active" style="margin-top:4px;">✓ Verificado</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Proposal Form -->
+            {% if current_user.is_authenticated and current_user.id != listing.seller_id and listing.status == 'active' %}
+            <div class="proposal-box">
+                <h3>Fazer Proposta</h3>
+                <form method="POST" action="{{ url_for('proposal_create', uid=listing.uid) }}">
+                    <div class="form-group">
+                        <label class="form-label">Valor da Proposta (R$)</label>
+                        <input type="number" name="amount" class="form-control" step="0.01" placeholder="0,00" required value="{{ listing.price }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Quantidade Desejada ({{ listing.unit }})</label>
+                        <input type="number" name="quantity" class="form-control" step="0.01" value="{{ listing.quantity }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Mensagem (opcional)</label>
+                        <textarea name="message" class="form-control" rows="3" placeholder="Ex: Tenho interesse em retirar na semana que vem..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block btn-lg">Enviar Proposta</button>
+                </form>
+            </div>
+            {% elif not current_user.is_authenticated %}
+            <div class="card">
+                <div class="card-body" style="text-align:center;">
+                    <p style="margin-bottom:12px;">Faça login para enviar uma proposta</p>
+                    <a href="{{ url_for('login') }}" class="btn btn-primary">Entrar</a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Similar -->
+    {% if similar %}
+    <section class="section">
+        <h2 class="section-title">Lotes Similares</h2>
+        <div class="grid grid-4" style="margin-top:16px;">
+            {% for listing in similar %}
+            {% include "listings/_card.html" %}
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+</div>
+
+<script>
+function toggleFavorite(listingId) {
+    fetch('/favorite/' + listingId, {method: 'POST', headers: {'Content-Type': 'application/json'}})
+    .then(r => r.json())
+    .then(data => location.reload());
+}
+</script>
+{% endblock %}

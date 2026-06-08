@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Cadastro - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="auth-page">
+    <div class="auth-card" style="max-width:560px;">
+        <div style="text-align:center; margin-bottom:24px;">
+            <div style="font-size:40px;">♻</div>
+        </div>
+        <h1>Criar Conta</h1>
+        <p class="subtitle">Comece a comprar e vender sobras industriais</p>
+        <form method="POST">
+            <div class="form-group">
+                <label class="form-label">Nome / Razão Social</label>
+                <input type="text" name="name" class="form-control" placeholder="Nome da empresa ou seu nome" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">E-mail</label>
+                <input type="email" name="email" class="form-control" placeholder="seu@email.com" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Senha</label>
+                <input type="password" name="password" class="form-control" placeholder="Mínimo 6 caracteres" required minlength="6">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Tipo de Documento</label>
+                    <select name="document_type" class="form-control">
+                        <option value="cnpj">CNPJ</option>
+                        <option value="cpf">CPF</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">CNPJ / CPF</label>
+                    <input type="text" name="document" class="form-control" placeholder="00.000.000/0001-00">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Telefone</label>
+                <input type="text" name="phone" class="form-control" placeholder="(00) 00000-0000">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Cidade</label>
+                    <input type="text" name="city" class="form-control" placeholder="Sua cidade">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Estado</label>
+                    <select name="state" class="form-control">
+                        <option value="">Selecione</option>
+                        {% for uf in ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'] %}
+                        <option value="{{ uf }}">{{ uf }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block btn-lg">Criar Conta</button>
+        </form>
+        <div class="auth-divider">já tem conta?</div>
+        <a href="{{ url_for('login') }}" class="btn btn-secondary btn-block">Fazer Login</a>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}Editar Lote - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="container page-content">
+    <div class="page-header">
+        <h1 class="page-title">Editar Lote</h1>
+    </div>
+    <div style="max-width:720px;">
+        <form method="POST" enctype="multipart/form-data">
+            <div class="card" style="margin-bottom:24px;">
+                <div class="card-header">Informações do Material</div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label class="form-label">Título *</label>
+                        <input type="text" name="title" class="form-control" value="{{ listing.title }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Descrição</label>
+                        <textarea name="description" class="form-control" rows="4">{{ listing.description or '' }}</textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Categoria</label>
+                            <select name="category_id" class="form-control">
+                                <option value="">Selecione</option>
+                                {% for cat in categories %}
+                                <option value="{{ cat.id }}" {{ 'selected' if listing.category_id == cat.id }}>{{ cat.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Material</label>
+                            <input type="text" name="material_type" class="form-control" value="{{ listing.material_type or '' }}">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Condição</label>
+                        <select name="condition" class="form-control">
+                            {% for c in ['novo','seminovo','usado','sucata'] %}
+                            <option value="{{ c }}" {{ 'selected' if listing.condition == c }}>{{ c|capitalize }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="card" style="margin-bottom:24px;">
+                <div class="card-header">Quantidade e Preço</div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Quantidade *</label>
+                            <input type="number" name="quantity" class="form-control" step="0.01" value="{{ listing.quantity }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Unidade</label>
+                            <select name="unit" class="form-control">
+                                {% for u in ['kg','ton','un','m2','m3','ml','lt'] %}
+                                <option value="{{ u }}" {{ 'selected' if listing.unit == u }}>{{ u }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Preço (R$) *</label>
+                            <input type="number" name="price" class="form-control" step="0.01" value="{{ listing.price }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Tipo</label>
+                            <select name="price_type" class="form-control">
+                                <option value="total" {{ 'selected' if listing.price_type == 'total' }}>Total</option>
+                                <option value="por_unidade" {{ 'selected' if listing.price_type == 'por_unidade' }}>Por Unidade</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card" style="margin-bottom:24px;">
+                <div class="card-header">Localização</div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Cidade</label>
+                            <input type="text" name="city" class="form-control" value="{{ listing.city or '' }}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Estado</label>
+                            <select name="state" class="form-control">
+                                <option value="">Selecione</option>
+                                {% for uf in ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'] %}
+                                <option value="{{ uf }}" {{ 'selected' if listing.state == uf }}>{{ uf }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tipo de Entrega</label>
+                        <select name="delivery_type" class="form-control">
+                            <option value="retirada" {{ 'selected' if listing.delivery_type == 'retirada' }}>Retirada</option>
+                            <option value="entrega" {{ 'selected' if listing.delivery_type == 'entrega' }}>Entrega</option>
+                            <option value="ambos" {{ 'selected' if listing.delivery_type == 'ambos' }}>Ambos</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="card" style="margin-bottom:24px;">
+                <div class="card-header">Fotos</div>
+                <div class="card-body">
+                    {% if listing.images.count() > 0 %}
+                    <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+                        {% for img in listing.images.all() %}
+                        <img src="{{ img.path }}" style="width:100px; height:75px; object-fit:cover; border-radius:6px;">
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <input type="file" name="images" class="form-control" accept="image/*" multiple>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-control" style="max-width:200px;">
+                    <option value="active" {{ 'selected' if listing.status == 'active' }}>Ativo</option>
+                    <option value="draft" {{ 'selected' if listing.status == 'draft' }}>Rascunho</option>
+                </select>
+            </div>
+            <div style="display:flex; gap:12px; margin-top:24px;">
+                <button type="submit" class="btn btn-primary btn-lg">Salvar Alterações</button>
+                <a href="{{ url_for('listing_detail', uid=listing.uid) }}" class="btn btn-secondary btn-lg">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

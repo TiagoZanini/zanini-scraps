@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Page Not Found{% endblock %}
+
+{% block content %}
+<div class="page-content" style="display: flex; align-items: center; justify-content: center; min-height: 60vh;">
+    <div style="text-align: center; max-width: 500px; margin: auto;">
+        <div style="margin-bottom: 2rem;">
+            <h1 style="font-size: 5rem; color: var(--accent); margin: 0; font-weight: 700;">404</h1>
+        </div>
+
+        <h2 style="color: var(--text-primary); margin-bottom: 1rem;">Page Not Found</h2>
+
+        <p style="color: var(--text-muted); font-size: 1.1rem; margin-bottom: 2rem;">
+            Sorry, the page you're looking for doesn't exist or has been removed.
+        </p>
+
+        <div class="card" style="margin-bottom: 2rem;">
+            <div class="card-body">
+                <p style="color: var(--text-secondary); margin: 0;">
+                    ⚠️ The resource you're trying to access may have been moved or is no longer available.
+                </p>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            <a href="{{ url_for('dashboard') }}" style="background: var(--accent); border: none; color: white; padding: 0.7rem 2rem; border-radius: 4px; text-decoration: none; display: inline-block;">
+                🏠 Go to Dashboard
+            </a>
+            <a href="{{ url_for('proposals_list', tab='received') }}" style="border: 1px solid var(--border); color: var(--text-primary); padding: 0.7rem 2rem; border-radius: 4px; text-decoration: none; display: inline-block;">
+                📬 Browse Listings
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

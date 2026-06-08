@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Painel — {{ platform_name }}{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div style="margin-bottom: 2rem;">
+        <h1 class="page-title">Painel</h1>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="grid grid-4 mb-4">
+        <div class="stat-card">
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.5rem;">Anúncios Ativos</p>
+            <h2 style="color: var(--accent); margin: 0;">{{ stats.active_listings }}</h2>
+        </div>
+
+        <div class="stat-card">
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.5rem;">Propostas Pendentes</p>
+            <h2 style="color: var(--accent); margin: 0;">{{ stats.pending_proposals }}</h2>
+        </div>
+
+        <div class="stat-card">
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.5rem;">Total Vendido</p>
+            <h2 style="color: var(--accent); margin: 0;">{{ stats.total_sold|brl }}</h2>
+        </div>
+
+        <div class="stat-card">
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.5rem;">Total Comprado</p>
+            <h2 style="color: var(--accent); margin: 0;">{{ stats.total_bought|brl }}</h2>
+        </div>
+    </div>
+
+    <div class="grid grid-2 mb-4">
+        <!-- Recent Listings -->
+        <div class="card">
+            <div class="card-header">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h5 style="color: var(--text-primary); margin: 0;">📋 Anúncios Recentes</h5>
+                    <a href="{{ url_for('listing_create') }}" style="color: var(--accent); text-decoration: none; font-size: 0.9rem;">
+                        ➕ Novo
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if listings %}
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        {% for listing in listings[:5] %}
+                            <div class="mb-3 pb-3" style="border-bottom: 1px solid var(--border);">
+                                <a href="{{ url_for('listing_detail', uid=listing.uid) }}" style="color: var(--accent); text-decoration: none;">
+                                    <h6 style="color: var(--text-primary); margin: 0 0 0.3rem 0;">{{ listing.title[:40] }}{% if listing.title|length > 40 %}...{% endif %}</h6>
+                                </a>
+                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
+                                    <span style="color: var(--accent); font-weight: 600;">{{ listing.price|brl }}</span>
+                                    <span class="badge-status {% if listing.status == 'sold' %}badge-sold{% elif listing.status == 'draft' %}badge-draft{% else %}badge-active{% endif %}">
+                                        {{ listing.status|upper }}
+                                    </span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <p style="color: var(--text-muted); text-align: center; padding: 2rem 0; margin: 0;">Nenhum anúncio ainda</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Proposals -->
+        <div class="card">
+            <div class="card-header">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h5 style="color: var(--text-primary); margin: 0;">💬 Propostas Recentes</h5>
+                    <a href="{{ url_for('proposals_list', tab='received') }}" style="color: var(--accent); text-decoration: none; font-size: 0.9rem;">
+                        Ver Todas
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if proposals_received or proposals_sent %}
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        {% for proposal in (proposals_received + proposals_sent)[:5] %}
+                            <div class="mb-3 pb-3" style="border-bottom: 1px solid var(--border);">
+                                <a href="{{ url_for('proposal_detail', uid=proposal.uid) }}" style="color: var(--accent); text-decoration: none;">
+                                    <h6 style="color: var(--text-primary); margin: 0 0 0.3rem 0;">{{ proposal.listing.title[:35] }}{% if proposal.listing.title|length > 35 %}...{% endif %}</h6>
+                                </a>
+                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
+                                    <span style="color: var(--accent); font-weight: 600;">{{ proposal.amount|brl }}</span>
+                                    <span class="badge-status badge-{{ proposal.status|lower }}">
+                                        {{ proposal.status|upper }}
+                                    </span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <p style="color: var(--text-muted); text-align: center; padding: 2rem 0; margin: 0;">Nenhuma proposta ainda</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Transactions Section -->
+    <div class="card">
+        <div class="card-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h5 style="color: var(--text-primary); margin: 0;">💳 Transações Recentes</h5>
+                <a href="{{ url_for('transactions_list') }}" style="color: var(--accent); text-decoration: none; font-size: 0.9rem;">
+                    Ver Todas
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if transactions %}
+                <div class="table-wrap">
+                    <table style="margin: 0; width: 100%;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <th style="color: var(--text-muted); background: transparent; border: none; text-align: left; padding: 0.75rem;">Anúncio</th>
+                                <th style="color: var(--text-muted); background: transparent; border: none; text-align: right; padding: 0.75rem; white-space: nowrap;">Valor</th>
+                                <th style="color: var(--text-muted); background: transparent; border: none; text-align: left; padding: 0.75rem;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tx in transactions[:5] %}
+                                <tr style="border-bottom: 1px solid var(--border);">
+                                    <td style="color: var(--text-primary); padding: 1rem 0.75rem;">
+                                        <a href="{{ url_for('transaction_detail', uid=tx.uid) }}" style="color: var(--accent); text-decoration: none;">
+                                            {{ tx.proposal.listing.title[:30] }}{% if tx.proposal.listing.title|length > 30 %}...{% endif %}
+                                        </a>
+                                    </td>
+                                    <td style="color: var(--accent); font-weight: 600; padding: 1rem 0.75rem; text-align: right; white-space: nowrap;">
+                                        {{ tx.gross_amount|brl }}
+                                    </td>
+                                    <td style="padding: 1rem 0.75rem;">
+                                        <span class="badge-status {% if tx.payment_status == 'completed' %}badge-completed{% else %}badge-pending{% endif %}">
+                                            {{ tx.payment_status|upper }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <p style="color: var(--text-muted); text-align: center; padding: 2rem 0; margin: 0;">Nenhuma transação ainda</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

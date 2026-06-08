@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Access Denied{% endblock %}
+
+{% block content %}
+<div class="page-content" style="display: flex; align-items: center; justify-content: center; min-height: 60vh;">
+    <div style="text-align: center; max-width: 500px; margin: auto;">
+        <div style="margin-bottom: 2rem;">
+            <h1 style="font-size: 5rem; color: #dc3545; margin: 0; font-weight: 700;">403</h1>
+        </div>
+
+        <h2 style="color: var(--text-primary); margin-bottom: 1rem;">Access Denied</h2>
+
+        <p style="color: var(--text-muted); font-size: 1.1rem; margin-bottom: 2rem;">
+            You don't have permission to access this resource.
+        </p>
+
+        <div class="card" style="margin-bottom: 2rem;">
+            <div class="card-body">
+                <p style="color: var(--text-secondary); margin: 0;">
+                    🔒 This page is restricted. If you believe this is an error, please contact support.
+                </p>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            <a href="{{ url_for('dashboard') }}" style="background: var(--accent); border: none; color: white; padding: 0.7rem 2rem; border-radius: 4px; text-decoration: none; display: inline-block;">
+                🏠 Go to Dashboard
+            </a>
+            <a href="javascript:history.back();" style="border: 1px solid var(--border); color: var(--text-primary); padding: 0.7rem 2rem; border-radius: 4px; text-decoration: none; display: inline-block;">
+                ⬅️ Go Back
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

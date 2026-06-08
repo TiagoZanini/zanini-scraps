@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Conversas — {{ platform_name }}{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <h1 class="page-title" style="margin-bottom: 2rem;">💬 Conversas</h1>
+
+    {% if conversations %}
+        {% for conversation in conversations %}
+            <a href="{{ url_for('proposal_detail', uid=conversation.uid) }}" style="text-decoration: none;">
+                <div class="card" style="margin-bottom: 1rem; cursor: pointer;">
+                    <div class="card-body">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div style="flex: 1;">
+                                <h5 style="color: var(--text-primary); margin: 0 0 0.5rem 0;">
+                                    {{ conversation.listing.title[:50] }}{% if conversation.listing.title|length > 50 %}...{% endif %}
+                                </h5>
+                                <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">
+                                    {% if current_user.id == conversation.seller_user.id %}
+                                        Com <strong>{{ conversation.buyer.name }}</strong> (comprador)
+                                    {% else %}
+                                        Com <strong>{{ conversation.seller_user.name }}</strong> (vendedor)
+                                    {% endif %}
+                                </p>
+                            </div>
+
+                            <div style="text-align: right; margin-left: 1rem;">
+                                <div style="margin-bottom: 0.5rem;">
+                                    <span class="badge-status badge-{{ conversation.status|lower }}">
+                                        {{ conversation.status|upper }}
+                                    </span>
+                                    <span style="color: var(--text-muted); font-size: 0.85rem; margin-left: 0.5rem;">
+                                        {{ conversation.amount|brl }}
+                                    </span>
+                                </div>
+                                <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">
+                                    {{ conversation.last_message_at.strftime('%d/%m/%Y') if conversation.last_message_at else conversation.created_at.strftime('%d/%m/%Y') }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state" style="padding: 4rem 2rem; text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">💬</div>
+            <p style="color: var(--text-muted);">Nenhuma conversa ainda. Navegue pelos anúncios para começar a negociar.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

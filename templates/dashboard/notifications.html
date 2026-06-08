@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Notificações — {{ platform_name }}{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <h1 class="page-title" style="margin-bottom: 2rem;">🔔 Notificações</h1>
+
+    {% if notifications %}
+        {% for notification in notifications %}
+            <div class="card" style="background: var(--bg-card); border: 1px solid {% if notification.is_read %}var(--border){% else %}var(--accent){% endif %}; margin-bottom: 1rem;">
+                <div class="card-body">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div style="flex: 1;">
+                            <h5 style="color: var(--text-primary); margin-bottom: 0.5rem; margin-top: 0;">
+                                {% if notification.type == 'proposal_received' %}
+                                    📧 Nova Proposta Recebida
+                                {% elif notification.type == 'proposal_accepted' %}
+                                    ✅ Proposta Aceita
+                                {% elif notification.type == 'proposal_rejected' %}
+                                    ❌ Proposta Rejeitada
+                                {% elif notification.type == 'proposal_countered' %}
+                                    🔄 Contraproposta Recebida
+                                {% elif notification.type == 'message_received' %}
+                                    💬 Nova Mensagem
+                                {% elif notification.type == 'payment_received' %}
+                                    💰 Pagamento Recebido
+                                {% elif notification.type == 'delivery_confirmed' %}
+                                    📦 Entrega Confirmada
+                                {% endif %}
+                            </h5>
+                            <p style="color: var(--text-secondary); margin-bottom: 0;">{{ notification.title }}</p>
+                            {% if notification.content %}
+                                <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem; margin-bottom: 0;">{{ notification.content }}</p>
+                            {% endif %}
+                            <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.5rem; margin-bottom: 0;">
+                                {{ notification.created_at.strftime('%d/%m/%Y às %H:%M') }}
+                            </p>
+                        </div>
+
+                        <div style="text-align: right; margin-left: 1rem;">
+                            {% if not notification.is_read %}
+                                <span class="badge-status badge-new" style="display: inline-block;">
+                                    NEW
+                                </span>
+                            {% endif %}
+                            {% if notification.link %}
+                                <div style="margin-top: 0.5rem;">
+                                    <a href="{{ notification.link }}" style="color: var(--accent); text-decoration: none; font-weight: 600;">
+                                        Ver →
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state" style="padding: 4rem 2rem; text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">🔔</div>
+            <p style="color: var(--text-muted);">Nenhuma notificação ainda. Você verá atualizações aqui quando propostas forem feitas, aceitas ou pagamentos recebidos.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

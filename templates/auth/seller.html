@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ seller.name }} - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="container page-content">
+    <div class="card" style="margin-bottom:32px;">
+        <div class="card-body" style="display:flex; align-items:center; gap:20px;">
+            <div class="user-avatar" style="width:64px; height:64px; font-size:24px;">{{ seller.display_name[0]|upper }}</div>
+            <div>
+                <h1 style="font-size:1.5rem; margin-bottom:4px;">{{ seller.name }}</h1>
+                <p style="color:var(--text-muted);">📍 {{ seller.city or '—' }}{% if seller.state %}/{{ seller.state }}{% endif %} &bull; Membro desde {{ seller.created_at.strftime('%b %Y') }}</p>
+                <span class="badge-status badge-active">{{ seller.role|capitalize }}</span>
+            </div>
+        </div>
+    </div>
+    <h2 class="section-title">Lotes Ativos ({{ listings|length }})</h2>
+    {% if listings %}
+    <div class="grid grid-3" style="margin-top:16px;">
+        {% for listing in listings %}
+        {% include "listings/_card.html" %}
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>Este vendedor ainda não tem lotes ativos.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

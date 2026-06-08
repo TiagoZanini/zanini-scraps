@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Proposta — {{ proposal.listing.title }}{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div class="grid grid-3" style="gap: 2rem;">
+        <div style="grid-column: span 2;">
+            <!-- Proposal Header -->
+            <div class="card">
+                <div class="card-body">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                        <div>
+                            <h2 style="color: var(--text-primary); margin: 0; margin-bottom: 0.5rem;">{{ proposal.listing.title }}</h2>
+                            <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">
+                                Anunciado por <a href="{{ url_for('seller_profile', uid=proposal.listing.seller.uid) }}" style="color: var(--accent);">{{ proposal.listing.seller.name }}</a>
+                            </p>
+                        </div>
+                        <span class="badge-status badge-{{ proposal.status|lower }}" style="white-space: nowrap;">
+                            {{ proposal.status|upper }}
+                        </span>
+                    </div>
+
+                    <hr style="border-color: var(--border); margin: 1.5rem 0;">
+
+                    <!-- Proposal Details -->
+                    <div class="grid grid-2 mb-4">
+                        <div>
+                            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.3rem;">💰 Oferta Inicial</p>
+                            <h3 style="color: var(--accent); margin: 0;">{{ proposal.amount|brl }}</h3>
+                            <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 1rem; margin-bottom: 0.3rem;">📅 Data</p>
+                            <p style="color: var(--text-primary); margin: 0;">{{ proposal.created_at.strftime('%d de %B de %Y às %H:%M') }}</p>
+                        </div>
+
+                        {% if proposal.counter_amount %}
+                            <div style="background: rgba(var(--accent-rgb), 0.1); padding: 1rem; border-radius: 6px; border-left: 3px solid var(--accent);">
+                                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.3rem;">🔄 Contraproposta</p>
+                                <h3 style="color: var(--accent); margin: 0;">{{ proposal.counter_amount|brl }}</h3>
+                                {% if proposal.counter_message %}
+                                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem; margin-bottom: 0;">{{ proposal.counter_message }}</p>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Action Buttons -->
+                    {% if proposal.status == 'pending' %}
+                        {% if current_user.id == proposal.seller_id %}
+                            <!-- Seller actions: accept or counter -->
+                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                <button type="button" class="btn" data-bs-toggle="modal" data-bs-target="#counterModal" style="background: var(--accent); border: none; color: white; padding: 0.5rem 1rem; border-radius: 4px;">
+                                    ✏️ Fazer Contraproposta
+                                </button>
+                                <form action="{{ url_for('proposal_accept', uid=proposal.uid) }}" method="POST" style="display: inline;">
+                                    <button type="submit" class="btn" style="background: #28a745; border: none; color: white; padding: 0.5rem 1rem; border-radius: 4px;">
+                                        ✅ Aceitar Oferta
+                                    </button>
+                                </form>
+                                <form action="{{ url_for('proposal_reject', uid=proposal.uid) }}" method="POST" style="display: inline;">
+                                    <button type="submit" class="btn" style="background: #dc3545; border: none; color: white; padding: 0.5rem 1rem; border-radius: 4px;">
+                                        ❌ Rejeitar
+                                    </button>
+                                </form>
+                            </div>
+                        {% elif current_user.id == proposal.buyer_id %}
+                            <!-- Buyer actions: accept counter or wait -->
+                            {% if proposal.counter_amount %}
+                                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                    <form action="{{ url_for('proposal_accept_counter', uid=proposal.uid) }}" method="POST" style="display: inline;">
+                                        <button type="submit" class="btn" style="background: #28a745; border: none; color: white; padding: 0.5rem 1rem; border-radius: 4px;">
+                                            ✅ Aceitar Contraproposta
+                                        </button>
+                                    </form>
+                                    <form action="{{ url_for('proposal_reject', uid=proposal.uid) }}" method="POST" style="display: inline;">
+                                        <button type="submit" class="btn" style="background: #dc3545; border: none; color: white; padding: 0.5rem 1rem; border-radius: 4px;">
+                                            ❌ Rejeitar
+                                        </button>
+                                    </form>
+                                </div>
+                            {% else %}
+                                <p style="color: var(--text-muted);">⏳ Aguardando resposta do vendedor...</p>
+                            {% endif %}
+                        {% endif %}
+                    {% elif proposal.status == 'accepted' %}
+                        <div style="background: rgba(40, 167, 69, 0.1); border: 1px solid #28a745; color: #28a745; padding: 1rem; border-radius: 4px;">
+                            ✅ Esta proposta foi aceita. Prossiga para o pagamento.
+                        </div>
+                    {% elif proposal.status == 'rejected' %}
+                        <div style="background: rgba(220, 53, 69, 0.1); border: 1px solid #dc3545; color: #dc3545; padding: 1rem; border-radius: 4px;">
+                            ❌ Esta proposta foi rejeitada.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Messages Section -->
+            <div class="card" style="margin-top: 2rem;">
+                <div class="card-header">
+                    <h5 style="color: var(--text-primary); margin: 0;">💬 Mensagens</h5>
+                </div>
+
+                <div class="chat-container">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="chat-message {% if message.sender_id == current_user.id %}sent{% else %}received{% endif %}">
+                                <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.2rem;">
+                                    <strong style="color: var(--text-primary);">{{ message.sender.name }}</strong>
+                                    <span>{{ message.created_at.strftime('%d/%m às %H:%M') }}</span>
+                                </div>
+                                <div style="background: var(--bg-secondary); padding: 0.8rem; border-radius: 6px; color: var(--text-primary);">
+                                    {{ message.content }}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p style="color: var(--text-muted); text-align: center; padding: 2rem 0; margin: 0;">Nenhuma mensagem ainda</p>
+                    {% endif %}
+                </div>
+
+                <div style="border-top: 1px solid var(--border); background: var(--bg-card); padding: 1rem; border-radius: 0 0 8px 8px;">
+                    <form action="{{ url_for('chat_send', uid=proposal.uid) }}" method="POST">
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input type="text" name="content" class="form-control" placeholder="Enviar mensagem..." style="background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-primary); flex: 1; padding: 0.5rem 0.75rem; border-radius: 4px;" required>
+                            <button class="btn" type="submit" style="background: var(--accent); border: none; color: white; padding: 0.5rem 1rem; border-radius: 4px;">
+                                📤
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div>
+            <div class="card">
+                <div class="card-body">
+                    <h6 style="color: var(--text-muted); text-transform: uppercase; font-size: 0.8rem; margin-bottom: 1rem;">📦 Detalhes do Anúncio</h6>
+                    <div class="mb-3">
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.3rem;">Categoria</p>
+                        <p style="color: var(--text-primary); margin: 0;">{{ proposal.listing.category.name if proposal.listing.category else '—' }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.3rem;">Condição</p>
+                        <p style="color: var(--text-primary); margin: 0;">{{ proposal.listing.condition|capitalize }}</p>
+                    </div>
+                    <div>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.3rem;">Preço do Anúncio</p>
+                        <p style="color: var(--accent); margin: 0; font-weight: 600;">{{ proposal.listing.price|brl }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <a href="{{ url_for('listing_detail', uid=proposal.listing.uid) }}" class="btn" style="display: block; width: 100%; margin-top: 1rem; border: 1px solid var(--border); color: var(--text-primary); text-align: center; text-decoration: none; padding: 0.5rem; border-radius: 4px;">
+                👁️ Ver Anúncio Completo
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Counter-Offer Modal -->
+<div style="display: none;" id="counterModal" class="modal">
+    <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; margin: auto; width: 90%; max-width: 500px;">
+        <div style="border-bottom: 1px solid var(--border); padding: 1rem; display: flex; justify-content: space-between; align-items: center;">
+            <h5 style="color: var(--text-primary); margin: 0;">Fazer Contraproposta</h5>
+            <button type="button" onclick="closeCounterModal()" style="background: none; border: none; color: var(--text-primary); font-size: 1.5rem; cursor: pointer;">×</button>
+        </div>
+        <form action="{{ url_for('proposal_counter', uid=proposal.uid) }}" method="POST">
+            <div style="padding: 1.5rem;">
+                <div class="form-group">
+                    <label style="color: var(--text-primary);">Valor da Contraproposta (R$)</label>
+                    <input type="number" class="form-control" name="counter_amount" step="0.01" value="{{ proposal.listing.price }}" style="background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-primary); padding: 0.5rem; border-radius: 4px; width: 100%; margin-top: 0.3rem;" required>
+                </div>
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label style="color: var(--text-primary);">Mensagem (opcional)</label>
+                    <textarea class="form-control" name="counter_message" rows="3" style="background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-primary); padding: 0.5rem; border-radius: 4px; width: 100%; margin-top: 0.3rem;"></textarea>
+                </div>
+            </div>
+            <div style="border-top: 1px solid var(--border); padding: 1rem; display: flex; gap: 0.5rem; justify-content: flex-end;">
+                <button type="button" onclick="closeCounterModal()" style="background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-primary); padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">Cancelar</button>
+                <button type="submit" style="background: var(--accent); border: none; color: white; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">Enviar Contraproposta</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function closeCounterModal() {
+    document.getElementById('counterModal').style.display = 'none';
+}
+document.addEventListener('DOMContentLoaded', function() {
+    const btn = document.querySelector('[data-bs-target="#counterModal"]');
+    if (btn) {
+        btn.addEventListener('click', function() {
+            document.getElementById('counterModal').style.display = 'block';
+        });
+    }
+});
+window.addEventListener('click', function(event) {
+    const modal = document.getElementById('counterModal');
+    if (event.target == modal) {
+        modal.style.display = 'none';
+    }
+});
+</script>
+{% endblock %}

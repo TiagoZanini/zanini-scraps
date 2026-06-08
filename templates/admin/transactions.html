@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Transações - Admin{% endblock %}
+{% block content %}
+<div class="container page-content">
+    <div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+            <h1 class="page-title">Gestão de Transações</h1>
+            <p class="page-subtitle">{{ transactions|length }} transações registradas</p>
+        </div>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">← Voltar</a>
+    </div>
+    {% if transactions %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Comprador</th>
+                    <th>Vendedor</th>
+                    <th>Bruto</th>
+                    <th>Comissão</th>
+                    <th>Líquido</th>
+                    <th>Pagamento</th>
+                    <th>Logística</th>
+                    <th>Data</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tx in transactions %}
+                <tr>
+                    <td>{{ tx.buyer.name[:20] if tx.buyer else '—' }}</td>
+                    <td>{{ tx.seller.name[:20] if tx.seller else '—' }}</td>
+                    <td style="font-weight:600; white-space:nowrap;">{{ tx.gross_amount|brl }}</td>
+                    <td style="color:var(--danger); white-space:nowrap;">- {{ tx.commission|brl }}</td>
+                    <td style="color:var(--accent); font-weight:600; white-space:nowrap;">{{ tx.net_amount|brl }}</td>
+                    <td><span class="badge-status badge-{{ tx.payment_status }}">{{ tx.payment_status }}</span></td>
+                    <td><span class="badge-status badge-{{ tx.logistics_status }}">{{ tx.logistics_status }}</span></td>
+                    <td style="color:var(--text-muted);">{{ tx.created_at.strftime('%d/%m/%Y') }}</td>
+                    <td><a href="{{ url_for('transaction_detail', uid=tx.uid) }}" class="btn btn-sm btn-secondary">Ver</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="icon">💰</div>
+        <h3>Nenhuma transação registrada</h3>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

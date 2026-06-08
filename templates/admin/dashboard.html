@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="container page-content">
+    <div class="page-header">
+        <h1 class="page-title">Painel Administrativo</h1>
+        <p class="page-subtitle">Visão geral da plataforma {{ platform_name }}</p>
+    </div>
+
+    <!-- KPIs -->
+    <div class="grid grid-4" style="margin-bottom:32px;">
+        <div class="stat-card">
+            <div class="stat-icon blue">👥</div>
+            <div class="stat-value">{{ total_users }}</div>
+            <div class="stat-label">Usuários</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green">📋</div>
+            <div class="stat-value">{{ total_listings }}</div>
+            <div class="stat-label">Anúncios ({{ active_listings }} ativos)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon yellow">💰</div>
+            <div class="stat-value">{{ total_gmv|brl }}</div>
+            <div class="stat-label">GMV Total</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon red">📊</div>
+            <div class="stat-value">{{ total_commission|brl }}</div>
+            <div class="stat-label">Comissão (5%)</div>
+        </div>
+    </div>
+
+    <div class="grid grid-4" style="margin-bottom:32px;">
+        <div class="stat-card">
+            <div class="stat-value">{{ total_proposals }}</div>
+            <div class="stat-label">Propostas</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ total_transactions }}</div>
+            <div class="stat-label">Transações</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ active_listings }}</div>
+            <div class="stat-label">Lotes Ativos</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">5%</div>
+            <div class="stat-label">Take Rate</div>
+        </div>
+    </div>
+
+    <!-- Tabelas -->
+    <div class="grid grid-3" style="gap:24px;">
+        <!-- Recent Users -->
+        <div class="card">
+            <div class="card-header">
+                <span>Usuários Recentes</span>
+                <a href="{{ url_for('admin_users') }}" class="btn btn-sm btn-secondary">Ver Todos</a>
+            </div>
+            <div class="card-body" style="padding:0;">
+                {% for user in recent_users %}
+                <div style="padding:12px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px;">
+                    <div class="user-avatar" style="width:32px; height:32px; font-size:12px;">{{ user.display_name[0]|upper }}</div>
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-weight:600; font-size:0.85rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ user.name }}</div>
+                        <div style="font-size:0.75rem; color:var(--text-muted);">{{ user.role }} &bull; {{ user.created_at.strftime('%d/%m') }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="card">
+            <div class="card-header">
+                <span>Transações Recentes</span>
+                <a href="{{ url_for('admin_transactions') }}" class="btn btn-sm btn-secondary">Ver Todas</a>
+            </div>
+            <div class="card-body" style="padding:0;">
+                {% if recent_transactions %}
+                {% for tx in recent_transactions %}
+                <div style="padding:12px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <div style="font-weight:600; font-size:0.85rem;">{{ tx.gross_amount|brl }}</div>
+                        <div style="font-size:0.75rem; color:var(--text-muted);">{{ tx.created_at.strftime('%d/%m/%Y') }}</div>
+                    </div>
+                    <span class="badge-status badge-{{ tx.payment_status }}">{{ tx.payment_status }}</span>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="empty-state" style="padding:24px;"><p>Nenhuma transação</p></div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Listings -->
+        <div class="card">
+            <div class="card-header">
+                <span>Anúncios Recentes</span>
+                <a href="{{ url_for('admin_listings') }}" class="btn btn-sm btn-secondary">Ver Todos</a>
+            </div>
+            <div class="card-body" style="padding:0;">
+                {% for listing in recent_listings %}
+                <div style="padding:12px 20px; border-bottom:1px solid var(--border);">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div style="font-weight:600; font-size:0.85rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:160px;">
+                            <a href="{{ url_for('listing_detail', uid=listing.uid) }}">{{ listing.title }}</a>
+                        </div>
+                        <span class="badge-status badge-{{ listing.status }}">{{ listing.status }}</span>
+                    </div>
+                    <div style="font-size:0.75rem; color:var(--text-muted); display:flex; justify-content:space-between; margin-top:4px;">
+                        <span>{{ listing.price|brl }}</span>
+                        <span>{{ listing.created_at.strftime('%d/%m') }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

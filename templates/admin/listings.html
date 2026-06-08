@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Anúncios - Admin{% endblock %}
+{% block content %}
+<div class="container page-content">
+    <div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+            <h1 class="page-title">Gestão de Anúncios</h1>
+            <p class="page-subtitle">{{ listings|length }} anúncios no sistema</p>
+        </div>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">← Voltar</a>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Título</th>
+                    <th>Vendedor</th>
+                    <th>Material</th>
+                    <th>Preço</th>
+                    <th>Cidade/UF</th>
+                    <th>Status</th>
+                    <th>Criado</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for listing in listings %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('listing_detail', uid=listing.uid) }}" style="font-weight:600;">
+                            {{ listing.title[:40] }}{% if listing.title|length > 40 %}...{% endif %}
+                        </a>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('seller_profile', uid=listing.seller.uid) }}">{{ listing.seller.name[:20] }}</a>
+                    </td>
+                    <td style="color:var(--text-muted);">{{ listing.material_type or '—' }}</td>
+                    <td style="color:var(--accent); font-weight:600; white-space:nowrap;">{{ listing.price|brl }}</td>
+                    <td>{{ listing.city or '—' }}{% if listing.state %}/{{ listing.state }}{% endif %}</td>
+                    <td><span class="badge-status badge-{{ listing.status }}">{{ listing.status }}</span></td>
+                    <td style="color:var(--text-muted);">{{ listing.created_at.strftime('%d/%m/%Y') }}</td>
+                    <td><a href="{{ url_for('listing_detail', uid=listing.uid) }}" class="btn btn-sm btn-secondary">Ver</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

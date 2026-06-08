@@ -1,0 +1,59 @@
+<div class="listing-card">
+    <a href="{{ url_for('listing_detail', uid=listing.uid) }}" class="listing-card-img">
+        {% if listing.images.first() %}
+        <img src="{{ listing.main_image }}" alt="{{ listing.title }}" loading="lazy">
+        {% else %}
+        <div class="no-image-svg">📦</div>
+        {% endif %}
+        {% if listing.is_featured %}
+        <span class="badge-featured">Destaque</span>
+        {% endif %}
+        {% if listing.condition %}
+        <span class="badge-condition">
+            {% if listing.condition == 'novo' %}Novo
+            {% elif listing.condition == 'seminovo' %}Seminovo
+            {% elif listing.condition == 'usado' %}Usado
+            {% elif listing.condition == 'sucata' %}Reaproveitável
+            {% else %}{{ listing.condition|capitalize }}{% endif %}
+        </span>
+        {% endif %}
+    </a>
+    <div class="listing-card-body">
+        {% if listing.category %}
+        <div class="listing-card-category">{{ listing.category.name }}</div>
+        {% elif listing.material_type %}
+        <div class="listing-card-category">{{ listing.material_type }}</div>
+        {% endif %}
+        <div class="listing-card-title">
+            <a href="{{ url_for('listing_detail', uid=listing.uid) }}">{{ listing.title }}</a>
+        </div>
+        <div class="listing-card-meta">
+            <span>📍 {{ listing.city or '—' }}{% if listing.state %}/{{ listing.state }}{% endif %}</span>
+            <span>📦 {{ listing.quantity }} {{ listing.unit }}</span>
+        </div>
+        <!-- Badges de confiança -->
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0;">
+            {% if listing.has_invoice %}
+            <span style="font-size:0.7rem;background:#d1fae5;color:#065f46;padding:2px 7px;border-radius:4px;font-weight:600;">✓ Com nota de origem</span>
+            {% else %}
+            <span style="font-size:0.7rem;background:#fef3c7;color:#92400e;padding:2px 7px;border-radius:4px;">Sem nota declarada</span>
+            {% endif %}
+            {% if listing.delivery_type == 'retirada' %}
+            <span style="font-size:0.7rem;background:#e0f2fe;color:#0369a1;padding:2px 7px;border-radius:4px;">Retirada pelo comprador</span>
+            {% elif listing.delivery_type == 'entrega' %}
+            <span style="font-size:0.7rem;background:#e0f2fe;color:#0369a1;padding:2px 7px;border-radius:4px;">Entrega pelo vendedor</span>
+            {% else %}
+            <span style="font-size:0.7rem;background:#e0f2fe;color:#0369a1;padding:2px 7px;border-radius:4px;">Entrega negociável</span>
+            {% endif %}
+        </div>
+        <div class="listing-card-price">
+            <div>
+                <span class="price">{{ listing.price|brl }}</span>
+                {% if listing.price_type == 'por_unidade' %}
+                <span class="unit">/ {{ listing.unit }}</span>
+                {% endif %}
+            </div>
+            <span style="font-size:0.75rem; color:var(--text-muted);">👁 {{ listing.views }}</span>
+        </div>
+    </div>
+</div>

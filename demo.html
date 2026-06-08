@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zanini Scraps — Demo Interativa</title>
+<style>
+:root {
+  --bg: #0a0e17; --bg2: #111827; --card: #1a2235; --card2: #1f2a40;
+  --border: #1e3a5f; --border2: #2a4060;
+  --accent: #00d4aa; --accent2: #00a88a; --glow: rgba(0,212,170,0.12);
+  --blue: #3b82f6; --text: #e8edf5; --text2: #8899b0; --muted: #5a6a80;
+  --danger: #ef4444; --warn: #f59e0b; --success: #10b981;
+  --r: 12px; --r2: 8px; --shadow: 0 8px 32px rgba(0,0,0,0.4);
+  --trans: all .2s ease;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+a{color:var(--accent);text-decoration:none}
+/* SCREENS */
+.screen{display:none;animation:fadeIn .3s ease}
+.screen.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+/* NAV */
+nav{background:rgba(17,24,39,.96);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);
+  padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100}
+.nav-brand{display:flex;align-items:center;gap:10px;font-size:1.2rem;font-weight:700;color:var(--text)}
+.nav-logo{width:34px;height:34px;background:linear-gradient(135deg,var(--accent),var(--blue));
+  border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.nav-links{display:flex;gap:4px}
+.nav-links a{color:var(--text2);padding:7px 14px;border-radius:var(--r2);font-size:.85rem;font-weight:500;cursor:pointer;transition:var(--trans)}
+.nav-links a:hover,.nav-links a.active{color:var(--text);background:var(--card)}
+.nav-right{display:flex;align-items:center;gap:10px}
+.nav-user{display:flex;align-items:center;gap:8px;padding:4px 12px 4px 4px;border-radius:24px;
+  background:var(--card);border:1px solid var(--border);cursor:pointer;font-size:.85rem;font-weight:500;position:relative}
+.avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;color:var(--bg);background:linear-gradient(135deg,var(--accent),var(--blue))}
+.user-drop{position:absolute;top:44px;right:0;background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r2);min-width:160px;display:none;z-index:200;overflow:hidden}
+.user-drop a{display:block;padding:10px 16px;color:var(--text2);font-size:.85rem;cursor:pointer}
+.user-drop a:hover{background:var(--card2);color:var(--text)}
+/* HERO */
+.hero{padding:80px 24px;text-align:center;background:linear-gradient(135deg,var(--bg2) 0%,var(--bg) 60%);
+  border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;
+  background:radial-gradient(ellipse at 50% -20%,var(--glow) 0%,transparent 70%);pointer-events:none}
+.hero h1{font-size:2.6rem;font-weight:800;line-height:1.2;margin-bottom:16px}
+.hero h1 span{color:var(--accent)}
+.hero p{color:var(--text2);font-size:1.05rem;max-width:560px;margin:0 auto 32px}
+.hero-stats{display:flex;justify-content:center;gap:48px;margin-top:48px}
+.hstat .n{font-size:2rem;font-weight:800;color:var(--accent)}
+.hstat .l{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+/* CONTAINER */
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+.page{padding:32px 0;min-height:calc(100vh - 64px)}
+.page-title{font-size:1.6rem;font-weight:700;margin-bottom:6px}
+.page-sub{color:var(--text2);font-size:.9rem;margin-bottom:28px}
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 20px;border-radius:var(--r2);
+  font-size:.875rem;font-weight:600;border:none;cursor:pointer;transition:var(--trans);text-decoration:none}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:var(--bg)}
+.btn-primary:hover{opacity:.9;transform:translateY(-1px);color:var(--bg)}
+.btn-secondary{background:var(--card);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
+.btn-outline{background:transparent;border:1px solid var(--accent);color:var(--accent)}
+.btn-outline:hover{background:var(--accent);color:var(--bg)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-success{background:var(--success);color:#fff}
+.btn-sm{padding:6px 14px;font-size:.78rem}
+.btn-lg{padding:13px 28px;font-size:1rem}
+.btn-block{width:100%;justify-content:center}
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;transition:var(--trans)}
+.card:hover{border-color:var(--border2)}
+.card-body{padding:20px}
+.card-header{padding:14px 20px;border-bottom:1px solid var(--border);font-weight:600;font-size:.95rem;
+  display:flex;align-items:center;justify-content:space-between}
+/* LISTING CARDS */
+.listing-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);
+  overflow:hidden;transition:var(--trans);display:flex;flex-direction:column}
+.listing-card:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 8px 30px rgba(0,212,170,.1)}
+.listing-img{height:190px;background:var(--bg2);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.listing-img img{width:100%;height:100%;object-fit:cover}
+.listing-img .img-placeholder{font-size:56px;opacity:.3}
+.badge-feat{position:absolute;top:10px;left:10px;background:var(--accent);color:var(--bg);
+  padding:3px 9px;border-radius:5px;font-size:.68rem;font-weight:700;text-transform:uppercase}
+.listing-body{padding:14px;flex:1;display:flex;flex-direction:column}
+.listing-cat{font-size:.72rem;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.listing-title{font-size:.95rem;font-weight:600;margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.listing-meta{display:flex;gap:10px;font-size:.76rem;color:var(--muted);margin-bottom:10px}
+.listing-price{margin-top:auto;display:flex;align-items:baseline;justify-content:space-between}
+.listing-price .price{font-size:1.2rem;font-weight:700;color:var(--accent)}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+.grid-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+/* STAT CARDS */
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px}
+.stat-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:14px}
+.si-green{background:rgba(16,185,129,.15);color:var(--success)}
+.si-blue{background:rgba(59,130,246,.15);color:var(--blue)}
+.si-yellow{background:rgba(245,158,11,.15);color:var(--warn)}
+.si-red{background:rgba(239,68,68,.15);color:var(--danger)}
+.stat-val{font-size:1.7rem;font-weight:800;margin-bottom:3px}
+.stat-lbl{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+/* FORMS */
+.form-group{margin-bottom:18px}
+.form-label{display:block;font-size:.82rem;font-weight:500;color:var(--text2);margin-bottom:5px}
+.form-control{width:100%;padding:10px 13px;background:#0f1724;border:1px solid var(--border);
+  border-radius:var(--r2);color:var(--text);font-size:.9rem;outline:none;transition:var(--trans)}
+.form-control:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--glow)}
+.form-control::placeholder{color:var(--muted)}
+select.form-control{cursor:pointer}
+textarea.form-control{min-height:90px;resize:vertical}
+.form-row{display:flex;gap:14px}
+.form-row .form-group{flex:1}
+/* ALERTS */
+.alert{padding:12px 18px;border-radius:var(--r2);margin-bottom:16px;font-size:.875rem}
+.alert-success{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);color:var(--success)}
+.alert-info{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:var(--blue)}
+.alert-warning{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);color:var(--warn)}
+/* BADGES */
+.badge{padding:4px 10px;border-radius:6px;font-size:.72rem;font-weight:600;text-transform:uppercase}
+.badge-active{background:rgba(16,185,129,.15);color:var(--success)}
+.badge-pending{background:rgba(245,158,11,.15);color:var(--warn)}
+.badge-accepted{background:rgba(16,185,129,.15);color:var(--success)}
+.badge-rejected{background:rgba(239,68,68,.15);color:var(--danger)}
+/* TABLE */
+.table-wrap{border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+table{width:100%;border-collapse:collapse}
+th{background:var(--bg2);padding:11px 15px;text-align:left;font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+td{padding:11px 15px;border-top:1px solid var(--border);font-size:.875rem}
+tr:hover td{background:var(--card2)}
+/* AUTH PAGE */
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
+  background:linear-gradient(135deg,var(--bg2),var(--bg))}
+.auth-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:40px;width:100%;max-width:440px}
+.auth-card h2{font-size:1.4rem;margin-bottom:6px;text-align:center}
+.auth-card p{color:var(--text2);text-align:center;margin-bottom:28px;font-size:.9rem}
+.auth-logo{text-align:center;font-size:40px;margin-bottom:16px}
+.user-pick{display:flex;gap:12px;margin-bottom:24px}
+.user-pick-btn{flex:1;padding:14px;background:#0f1724;border:2px solid var(--border);border-radius:var(--r2);
+  cursor:pointer;text-align:center;transition:var(--trans)}
+.user-pick-btn:hover{border-color:var(--accent)}
+.user-pick-btn.selected{border-color:var(--accent);background:var(--glow)}
+.user-pick-btn .upicon{font-size:28px;margin-bottom:6px}
+.user-pick-btn .upname{font-weight:700;font-size:.9rem}
+.user-pick-btn .upemail{font-size:.75rem;color:var(--muted)}
+/* PROPOSAL DETAIL */
+.proposal-layout{display:grid;grid-template-columns:1fr 340px;gap:24px}
+.chat-box{height:320px;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;background:var(--bg2);border-radius:var(--r2)}
+.msg{max-width:72%;padding:10px 14px;border-radius:var(--r);font-size:.875rem;line-height:1.5}
+.msg.sent{align-self:flex-end;background:var(--accent);color:var(--bg);border-bottom-right-radius:3px}
+.msg.recv{align-self:flex-start;background:var(--card);border-bottom-left-radius:3px}
+.msg .msgtime{font-size:.7rem;opacity:.65;margin-top:4px}
+/* STEPS GUIDE */
+.demo-steps{display:flex;gap:0;margin-bottom:32px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.step{flex:1;padding:14px;text-align:center;font-size:.78rem;color:var(--muted);position:relative;transition:var(--trans)}
+.step.done{color:var(--success);background:rgba(16,185,129,.05)}
+.step.active{color:var(--accent);background:var(--glow);font-weight:600}
+.step .snum{display:block;font-size:1.1rem;font-weight:700;margin-bottom:4px}
+/* FILTERS */
+.filters{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px}
+.filter-label{font-size:.75rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.layout-2col{display:grid;grid-template-columns:240px 1fr;gap:22px}
+/* TOAST */
+#toast{position:fixed;bottom:28px;right:28px;background:var(--success);color:#fff;
+  padding:12px 20px;border-radius:var(--r2);font-size:.875rem;font-weight:600;
+  transform:translateY(80px);opacity:0;transition:all .3s ease;z-index:999;box-shadow:var(--shadow)}
+#toast.show{transform:translateY(0);opacity:1}
+/* TIMELINE */
+.timeline{display:flex;flex-direction:column;gap:0}
+.tl-item{display:flex;gap:14px;position:relative}
+.tl-item::before{content:'';position:absolute;left:14px;top:32px;bottom:0;width:2px;background:var(--border)}
+.tl-item:last-child::before{display:none}
+.tl-dot{width:30px;height:30px;min-width:30px;border-radius:50%;background:var(--card);border:2px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:14px;margin-top:6px}
+.tl-dot.done{background:var(--success);border-color:var(--success)}
+.tl-dot.active{background:var(--accent);border-color:var(--accent)}
+.tl-content{padding:6px 0 20px}
+.tl-content h4{font-size:.9rem;font-weight:600;margin-bottom:4px}
+.tl-content p{font-size:.82rem;color:var(--text2)}
+/* FOOTER */
+footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px;text-align:center;font-size:.78rem;color:var(--muted);margin-top:60px}
+/* RESPONSIVE */
+@media(max-width:900px){.grid-4,.grid-3{grid-template-columns:repeat(2,1fr)}.layout-2col{grid-template-columns:1fr}.proposal-layout{grid-template-columns:1fr}.grid-stats{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:500px){.grid-4,.grid-3,.grid-2{grid-template-columns:1fr}.hero h1{font-size:1.8rem}.hero-stats{gap:24px}}
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- NAV -->
+<nav id="navbar" style="display:none">
+  <div class="nav-brand">
+    <div class="nav-logo">♻</div>
+    Zanini Scraps
+  </div>
+  <div class="nav-links">
+    <a onclick="showScreen('home')" id="nl-home">Início</a>
+    <a onclick="showScreen('marketplace')" id="nl-market">Marketplace</a>
+    <a onclick="showScreen('dashboard')" id="nl-dash">Dashboard</a>
+    <a onclick="showScreen('create')" id="nl-create">+ Publicar Lote</a>
+    <a onclick="showScreen('proposals')" id="nl-prop">Propostas</a>
+  </div>
+  <div class="nav-right">
+    <div class="nav-user" onclick="toggleDrop()">
+      <div class="avatar" id="nav-avatar">Z</div>
+      <span id="nav-name">Usuário</span>
+      <span style="color:var(--muted);font-size:.8rem">▾</span>
+      <div class="user-drop" id="user-drop">
+        <a onclick="doLogout()">🚪 Sair da Conta</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════
+     SCREEN: LOGIN
+═══════════════════════════════ -->
+<div class="screen active" id="s-login">
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-logo">♻</div>
+    <h2>Zanini Scraps</h2>
+    <p>Sistema Nacional de Sobras Industriais<br>Selecione um usuário para o demo</p>
+
+    <div class="user-pick" id="user-pick-area">
+      <div class="user-pick-btn selected" onclick="selectUser(0)" id="upbtn0">
+        <div class="upicon">🏭</div>
+        <div class="upname">MetalSul</div>
+        <div class="upemail">metalsul@email.com</div>
+      </div>
+      <div class="user-pick-btn" onclick="selectUser(1)" id="upbtn1">
+        <div class="upicon">🏗️</div>
+        <div class="upname">77 Pilares</div>
+        <div class="upemail">contato@77pilares.com.br</div>
+      </div>
+    </div>
+
+    <div id="login-info" class="alert alert-info" style="margin-bottom:16px;font-size:.82rem">
+      Logando como: <strong id="login-as-name">MetalSul Reciclagem</strong> — Fornecedor/Comprador em Porto Alegre/RS
+    </div>
+
+    <button class="btn btn-primary btn-block btn-lg" onclick="doLogin()">Entrar na Plataforma →</button>
+
+    <div style="margin-top:20px;padding:14px;background:var(--bg2);border-radius:var(--r2);font-size:.78rem;color:var(--muted);line-height:1.8">
+      <strong style="color:var(--text2)">🗺️ Fluxo do Demo:</strong><br>
+      1. Login como <strong>MetalSul</strong> → Publicar lote<br>
+      2. Trocar para <strong>77 Pilares</strong> → Fazer proposta<br>
+      3. Voltar para <strong>MetalSul</strong> → Aceitar proposta<br>
+      4. Ver transação com escrow e pagamento
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════
+     SCREEN: HOME
+═══════════════════════════════ -->
+<div class="screen" id="s-home">
+<section class="hero">
+  <div class="container">
+    <h1>Compre e venda <span>sobras industriais</span><br>com segurança em todo o Brasil</h1>
+    <p>Marketplace B2B com compliance nativo, pagamento escrow e logística integrada. Qualquer empresa pode comprar e vender.</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <button class="btn btn-primary btn-lg" onclick="showScreen('marketplace')">🔍 Explorar Marketplace</button>
+      <button class="btn btn-outline btn-lg" onclick="showScreen('create')">📦 Publicar Lote</button>
+    </div>
+    <div class="hero-stats">
+      <div class="hstat"><div class="n" id="h-listings">8</div><div class="l">Lotes Ativos</div></div>
+      <div class="hstat"><div class="n">2</div><div class="l">Usuários Demo</div></div>
+      <div class="hstat"><div class="n" id="h-proposals">0</div><div class="l">Propostas</div></div>
+      <div class="hstat"><div class="n" id="h-gmv">R$ 0</div><div class="l">GMV</div></div>
+    </div>
+  </div>
+</section>
+
+<div class="container" style="padding-top:48px;padding-bottom:48px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px">
+    <div>
+      <h2 style="font-size:1.4rem;font-weight:700">Lotes em Destaque</h2>
+      <p style="color:var(--text2);font-size:.85rem;margin-top:4px">Materiais industriais disponíveis agora</p>
+    </div>
+    <button class="btn btn-secondary" onclick="showScreen('marketplace')">Ver Todos →</button>
+  </div>
+  <div class="grid-4" id="home-listings"></div>
+
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:56px">
+    <div class="card" style="text-align:center"><div class="card-body">
+      <div style="font-size:38px;margin-bottom:12px">📝</div>
+      <h3 style="font-size:.95rem;margin-bottom:8px">Cadastre-se</h3>
+      <p style="color:var(--muted);font-size:.82rem">Conta única para comprar e vender. Sem separação de papéis.</p>
+    </div></div>
+    <div class="card" style="text-align:center"><div class="card-body">
+      <div style="font-size:38px;margin-bottom:12px">📦</div>
+      <h3 style="font-size:.95rem;margin-bottom:8px">Publique ou Busque</h3>
+      <p style="color:var(--muted);font-size:.82rem">Anuncie sobras ou encontre materiais com filtros avançados.</p>
+    </div></div>
+    <div class="card" style="text-align:center"><div class="card-body">
+      <div style="font-size:38px;margin-bottom:12px">🤝</div>
+      <h3 style="font-size:.95rem;margin-bottom:8px">Negocie</h3>
+      <p style="color:var(--muted);font-size:.82rem">Propostas, contrapropostas e chat integrado para cada negociação.</p>
+    </div></div>
+    <div class="card" style="text-align:center"><div class="card-body">
+      <div style="font-size:38px;margin-bottom:12px">💰</div>
+      <h3 style="font-size:.95rem;margin-bottom:8px">Pague Seguro</h3>
+      <p style="color:var(--muted);font-size:.82rem">Escrow automático com split de 5% e liberação D+2 após entrega.</p>
+    </div></div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════
+     SCREEN: MARKETPLACE
+═══════════════════════════════ -->
+<div class="screen" id="s-marketplace">
+<div class="container page">
+  <div class="page-title">Marketplace</div>
+  <div class="page-sub">Encontre sobras industriais de fornecedores em todo o Brasil</div>
+  <div class="layout-2col">
+    <div class="filters">
+      <div class="filter-label">Buscar</div>
+      <input class="form-control" id="mkt-search" placeholder="Material, título..." style="margin-bottom:16px" oninput="filterListings()">
+      <div class="filter-label" style="margin-top:12px">Material</div>
+      <select class="form-control" id="mkt-material" onchange="filterListings()" style="margin-bottom:16px">
+        <option value="">Todos</option>
+        <option>Aço Inox</option><option>Aço Carbono</option><option>Alumínio</option>
+        <option>Cobre</option><option>Madeira</option><option>Plástico</option><option>Construção Civil</option>
+      </select>
+      <div class="filter-label">Estado</div>
+      <select class="form-control" id="mkt-state" onchange="filterListings()" style="margin-bottom:16px">
+        <option value="">Todos</option>
+        <option>RS</option><option>SP</option><option>PR</option><option>SC</option>
+        <option>MG</option><option>RJ</option><option>PE</option><option>AM</option>
+      </select>
+      <div class="filter-label">Ordenar</div>
+      <select class="form-control" id="mkt-sort" onchange="filterListings()" style="margin-bottom:16px">
+        <option>Mais Recentes</option>
+        <option>Menor Preço</option>
+        <option>Maior Preço</option>
+      </select>
+      <button class="btn btn-primary btn-block" onclick="filterListings()">Aplicar Filtros</button>
+      <button class="btn btn-secondary btn-block" style="margin-top:8px" onclick="resetFilters()">Limpar</button>
+      <div style="margin-top:20px;padding:14px;background:var(--bg2);border-radius:var(--r2)">
+        <div style="font-size:.75rem;color:var(--muted);margin-bottom:8px;font-weight:600;text-transform:uppercase">📊 Plataforma</div>
+        <div style="font-size:.82rem;color:var(--text2);line-height:2">
+          ✅ Compliance KYC<br>
+          🔒 Escrow Automático<br>
+          🚚 Logística Integrada<br>
+          💳 Pix + Cartão<br>
+          📊 Dashboard Tempo Real
+        </div>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:.82rem;color:var(--muted);margin-bottom:14px" id="mkt-count">8 lotes encontrados</div>
+      <div class="grid-3" id="mkt-listings"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════
+     SCREEN: LISTING DETAIL
+═══════════════════════════════ -->
+<div class="screen" id="s-detail">
+<div class="container page">
+  <div style="margin-bottom:16px">
+    <button class="btn btn-secondary btn-sm" onclick="showScreen('marketplace')">← Voltar</button>
+  </div>
+  <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:32px" id="detail-content"></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════
+     SCREEN: CREATE LISTING
+═══════════════════════════════ -->
+<div class="screen" id="s-create">
+<div class="container page">
+  <div class="page-title">📦 Publicar Novo Lote</div>
+  <div class="page-sub">Anuncie suas sobras industriais para todo o Brasil</div>
+
+  <div class="demo-steps" id="create-steps">
+    <div class="step active" id="cstep-1"><span class="snum">①</span>Informações</div>
+    <div class="step" id="cstep-2"><span class="snum">②</span>Preço & Qty</div>
+    <div class="step" id="cstep-3"><span class="snum">③</span>Localização</div>
+    <div class="step" id="cstep-4"><span class="snum">④</span>Publicar</div>
+  </div>
+
+  <div style="max-width:680px">
+    <div id="create-step-1">
+      <div class="card" style="margin-bottom:20px"><div class="card-header">Sobre o Material</div><div class="card-body">
+        <div class="form-group">
+          <label class="form-label">Título do Anúncio *</label>
+          <input class="form-control" id="c-title" placeholder="Ex: Lote de chapas de aço inox 304 - 5000kg">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Descrição</label>
+          <textarea class="form-control" id="c-desc" rows="4" placeholder="Especificações técnicas, dimensões, condição..."></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Tipo de Material</label>
+            <select class="form-control" id="c-material">
+              <option>Aço Inox 304</option><option>Aço Carbono</option><option>Aço CA-50</option>
+              <option>Alumínio</option><option>Cobre</option><option>Latão</option>
+              <option>Madeira</option><option>Plástico PEAD</option><option>PVC</option>
+              <option>Vergalhão</option><option>Outro</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Condição</label>
+            <select class="form-control" id="c-condition">
+              <option>novo</option><option>seminovo</option><option>usado</option><option>sucata</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Declaração de Origem (Compliance)</label>
+          <input class="form-control" id="c-origin" placeholder="Ex: Sobra de produção industrial — origem lícita">
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:.88rem;cursor:pointer">
+          <input type="checkbox" id="c-invoice" style="accent-color:var(--accent)">
+          Possuo nota fiscal de origem
+        </label>
+      </div></div>
+      <button class="btn btn-primary" onclick="createStep(2)">Próximo: Preço →</button>
+    </div>
+
+    <div id="create-step-2" style="display:none">
+      <div class="card" style="margin-bottom:20px"><div class="card-header">Quantidade e Preço</div><div class="card-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Quantidade *</label>
+            <input class="form-control" type="number" id="c-qty" placeholder="0" value="1000">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Unidade</label>
+            <select class="form-control" id="c-unit">
+              <option>kg</option><option>ton</option><option>un</option><option>m²</option><option>m³</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Preço Total (R$) *</label>
+            <input class="form-control" type="number" id="c-price" placeholder="0,00" value="25000" oninput="updatePreview()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tipo de Entrega</label>
+            <select class="form-control" id="c-delivery">
+              <option>Retirada no Local</option><option>Entrega pelo Vendedor</option><option>Ambos</option>
+            </select>
+          </div>
+        </div>
+        <div id="price-preview" style="padding:14px;background:var(--bg2);border-radius:var(--r2);font-size:.85rem;margin-top:8px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+            <span style="color:var(--text2)">Valor bruto do lote:</span>
+            <strong id="prev-gross" style="color:var(--accent)">R$ 25.000,00</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+            <span style="color:var(--text2)">Comissão plataforma (5%):</span>
+            <span id="prev-comm" style="color:var(--warn)">R$ 1.250,00</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:6px">
+            <strong>Você recebe líquido:</strong>
+            <strong id="prev-net" style="color:var(--success)">R$ 23.750,00</strong>
+          </div>
+        </div>
+      </div></div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-secondary" onclick="createStep(1)">← Voltar</button>
+        <button class="btn btn-primary" onclick="createStep(3)">Próximo: Localização →</button>
+      </div>
+    </div>
+
+    <div id="create-step-3" style="display:none">
+      <div class="card" style="margin-bottom:20px"><div class="card-header">Localização</div><div class="card-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Cidade</label>
+            <input class="form-control" id="c-city" placeholder="Sua cidade" value="">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Estado</label>
+            <select class="form-control" id="c-state">
+              <option>RS</option><option>SP</option><option>SC</option><option>PR</option>
+              <option>MG</option><option>RJ</option><option>PE</option><option>AM</option><option>GO</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Foto do Material</label>
+          <div style="padding:24px;border:2px dashed var(--border);border-radius:var(--r2);text-align:center;cursor:pointer;color:var(--muted)" onclick="simulateUpload()">
+            <div style="font-size:32px;margin-bottom:8px" id="upload-icon">📷</div>
+            <div style="font-size:.85rem" id="upload-text">Clique para simular upload de foto</div>
+          </div>
+        </div>
+      </div></div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-secondary" onclick="createStep(2)">← Voltar</button>
+        <button class="btn btn-primary" onclick="createStep(4)">Próximo: Revisar →</button>
+      </div>
+    </div>
+
+    <div id="create-step-4" style="display:none">
+      <div class="card" style="margin-bottom:20px"><div class="card-header">✅ Revisar e Publicar</div><div class="card-body">
+        <div id="review-content"></div>
+      </div></div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-secondary" onclick="createStep(3)">← Voltar</button>
+        <button class="btn btn-primary btn-lg" onclick="publishListing()">🚀 Publicar Anúncio Agora</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════
+     SCREEN: DASHBOARD
+═══════════════════════════════ -->
+<div class="screen" id="s-dashboard">
+<div class="container page">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px">
+    <div>
+      <div class="page-title" id="dash-greeting">Dashboard</div>
+      <div class="page-sub" id="dash-sub">Visão geral da sua atividade</div>
+    </div>
+    <button class="btn btn-primary" onclick="showScreen('create')">+ Publicar Lote</button>
+  </div>
+  <div class="grid-stats" id="dash-stats"></div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">📋 Meus Anúncios
+        <button class="btn btn-sm btn-secondary" onclick="showScreen('create')">+ Novo</button>
+      </div>
+      <div style="padding:0" id="dash-listings"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">🤝 Minhas Propostas
+        <button class="btn btn-sm btn-secondary" onclick="showScreen('proposals')">Ver Todas</button>
+      </div>
+      <div style="padding:0" id="dash-proposals"></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:20px">
+    <div class="card-header">💰 Transações Recentes</div>
+    <div id="dash-transactions"></div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════
+     SCREEN: PROPOSALS
+═══════════════════════════════ -->
+<div class="screen" id="s-proposals">
+<div class="container page">
+  <div class="page-title">Propostas</div>
+  <div class="page-sub">Negocie diretamente com compradores e vendedores</div>
+  <div style="display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:24px">
+    <div style="padding:10px 20px;cursor:pointer;font-size:.875rem;font-weight:600;color:var(--accent);border-bottom:2px solid var(--accent)" onclick="showPropTab('received')" id="ptab-recv">Recebidas</div>
+    <div style="padding:10px 20px;cursor:pointer;font-size:.875rem;color:var(--text2);border-bottom:2px solid transparent" onclick="showPropTab('sent')" id="ptab-sent">Enviadas</div>
+  </div>
+  <div id="proposals-content"></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════
+     SCREEN: PROPOSAL DETAIL
+═══════════════════════════════ -->
+<div class="screen" id="s-proposal-detail">
+<div class="container page">
+  <button class="btn btn-secondary btn-sm" onclick="showScreen('proposals')" style="margin-bottom:20px">← Voltar às Propostas</button>
+  <div class="proposal-layout" id="proposal-detail-content"></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════
+     SCREEN: TRANSACTION
+═══════════════════════════════ -->
+<div class="screen" id="s-transaction">
+<div class="container page">
+  <button class="btn btn-secondary btn-sm" onclick="showScreen('dashboard')" style="margin-bottom:20px">← Voltar ao Dashboard</button>
+  <div id="transaction-content"></div>
+</div>
+</div>
+
+<footer>
+  <strong style="color:var(--text2)">Zanini Scraps</strong> — Sistema Nacional de Comercialização de Sobras Industriais<br>
+  <span style="margin-top:6px;display:block">Desenvolvido por Grupo Zanini S.A. — Direitos reservados à Zanini Business — Inventor Tiago Lourenço Zanini</span>
+</footer>
+
+<script>
+// ═══════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════
+const USERS = [
+  { id:1, name:'MetalSul Reciclagem LTDA', short:'MetalSul', email:'metalsul@email.com', city:'Porto Alegre', state:'RS', icon:'🏭', color:'#00d4aa' },
+  { id:2, name:'77 Pilares Pré-Fabricados', short:'77 Pilares', email:'contato@77pilares.com.br', city:'Ribeirão Preto', state:'SP', icon:'🏗️', color:'#3b82f6' }
+];
+
+let state = {
+  currentUser: null,
+  selectedUserIdx: 0,
+  listings: [],
+  proposals: [],
+  transactions: [],
+  messages: {},
+  detailListing: null,
+  detailProposal: null,
+  detailTransaction: null,
+  uploadDone: false,
+  createStep: 1,
+};
+
+const SEED_LISTINGS = [
+  { id:100, title:'Lote de Armações de Pilares CA-50', material:'Aço CA-50', condition:'seminovo', qty:40, unit:'un', price:3200, city:'Ribeirão Preto', state:'SP', owner:2, icon:'🏗️', featured:true, desc:'Gaiolas de armação para pilares estruturais, vergalhão CA-50. Sobra de produção de pré-fabricados. ~40 unidades, seção 20x20cm.' },
+  { id:101, title:'Chapas Aço Inox 304 — 2mm', material:'Aço Inox 304', condition:'seminovo', qty:5000, unit:'kg', price:45000, city:'Porto Alegre', state:'RS', owner:1, icon:'🔩', featured:true, desc:'Chapas inox 304, 2mm, sobra de tanques industriais. Sem oxidação, nota fiscal disponível.' },
+  { id:102, title:'Vergalhões CA-50 10mm — 12m', material:'Vergalhão', condition:'novo', qty:6000, unit:'kg', price:30000, city:'Betim', state:'MG', owner:null, icon:'🏗️', desc:'Vergalhões CA-50 ø10mm, 12m. Sobra de obra. Com laudo técnico.' },
+  { id:103, title:'Alumínio 6061-T6 Barras Chatas', material:'Alumínio', condition:'novo', qty:800, unit:'kg', price:32000, city:'Porto Alegre', state:'RS', owner:1, icon:'⚙️', desc:'Barras chatas alumínio 6061-T6, diversas dimensões. Sobra de corte CNC.' },
+  { id:104, title:'PEAD Granulado Branco Virgem', material:'Plástico PEAD', condition:'novo', qty:10000, unit:'kg', price:65000, city:'Manaus', state:'AM', owner:null, icon:'♳', desc:'PEAD virgem branco, granulado. Sobra de embalagens. Qualidade premium.' },
+  { id:105, title:'Cobre Eletrolítico Chapas 3mm', material:'Cobre', condition:'seminovo', qty:500, unit:'kg', price:85000, city:'Joinville', state:'SC', owner:null, icon:'🥇', desc:'Chapas cobre eletrolítico 3mm, 99.9% pureza. Painéis elétricos.' },
+  { id:106, title:'Tijolos Cerâmicos 6 Furos — Pallets', material:'Construção Civil', condition:'novo', qty:15000, unit:'un', price:9000, city:'Belo Horizonte', state:'MG', owner:null, icon:'🧱', desc:'Tijolos 9x14x19cm. 15 pallets. Sobra de obra.' },
+  { id:107, title:'Vigas Eucalipto Tratado 15x15cm', material:'Madeira', condition:'seminovo', qty:200, unit:'un', price:14000, city:'Curitiba', state:'PR', owner:null, icon:'🪵', desc:'Vigas eucalipto autoclavado. Comprimentos 3-4m. Remanescente de galpão.' },
+];
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+function init() {
+  state.listings = SEED_LISTINGS.map(l => ({...l}));
+  renderHomeListings();
+  renderMarketplace();
+}
+
+// ═══════════════════════════════════════════
+//  SCREEN MANAGEMENT
+// ═══════════════════════════════════════════
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('s-' + name).classList.add('active');
+  document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+  const map = {home:'nl-home',marketplace:'nl-market',dashboard:'nl-dash',create:'nl-create',proposals:'nl-prop'};
+  if (map[name]) document.getElementById(map[name]).classList.add('active');
+  window.scrollTo(0,0);
+  if (name === 'dashboard') renderDashboard();
+  if (name === 'marketplace') renderMarketplace();
+  if (name === 'proposals') renderProposals('received');
+  if (name === 'home') renderHomeListings();
+  if (name === 'create') { state.createStep=1; renderCreateStep(1); prefillCreate(); }
+}
+
+function prefillCreate() {
+  if (!state.currentUser) return;
+  document.getElementById('c-city').value = state.currentUser.city;
+  const sel = document.getElementById('c-state');
+  for(let o of sel.options) if(o.value===state.currentUser.state){o.selected=true;break;}
+}
+
+// ═══════════════════════════════════════════
+//  AUTH
+// ═══════════════════════════════════════════
+let selectedIdx = 0;
+function selectUser(idx) {
+  selectedIdx = idx;
+  document.querySelectorAll('.user-pick-btn').forEach((b,i) => b.classList.toggle('selected', i===idx));
+  const u = USERS[idx];
+  document.getElementById('login-as-name').textContent = u.name;
+  document.getElementById('login-info').innerHTML = `Logando como: <strong>${u.name}</strong> — ${u.city}/${u.state}`;
+}
+
+function doLogin() {
+  state.currentUser = USERS[selectedIdx];
+  document.getElementById('navbar').style.display = 'flex';
+  document.getElementById('nav-avatar').textContent = state.currentUser.short[0];
+  document.getElementById('nav-avatar').style.background = `linear-gradient(135deg,${state.currentUser.color},#3b82f6)`;
+  document.getElementById('nav-name').textContent = state.currentUser.short;
+  showScreen('home');
+  toast(`✅ Bem-vindo, ${state.currentUser.short}!`, 'success');
+}
+
+function doLogout() {
+  state.currentUser = null;
+  document.getElementById('navbar').style.display = 'none';
+  document.getElementById('user-drop').style.display = 'none';
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('s-login').classList.add('active');
+  toast('Você saiu da conta.', 'info');
+}
+
+function toggleDrop() {
+  const d = document.getElementById('user-drop');
+  d.style.display = d.style.display === 'block' ? 'none' : 'block';
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.nav-user')) document.getElementById('user-drop').style.display = 'none';
+});
+
+// ═══════════════════════════════════════════
+//  LISTINGS
+// ═══════════════════════════════════════════
+function listingCard(l, onclick) {
+  const imgs = {'🔩':'linear-gradient(135deg,#1a3a5c,#0a1628)','🏗️':'linear-gradient(135deg,#2a1a0a,#1a0a00)','⚙️':'linear-gradient(135deg,#1a2a1a,#0a1a0a)','🥇':'linear-gradient(135deg,#2a2010,#1a1000)','♳':'linear-gradient(135deg,#1a1a2a,#0a0a1a)','🧱':'linear-gradient(135deg,#2a1a10,#1a0a00)','🪵':'linear-gradient(135deg,#1a1500,#0a0f00)'};
+  const bg = imgs[l.icon] || 'linear-gradient(135deg,#1a2235,#0a0e17)';
+  const isOwn = state.currentUser && l.owner === state.currentUser.id;
+  return `<div class="listing-card" onclick="${onclick}">
+    <div class="listing-img" style="background:${bg}">
+      <div class="img-placeholder">${l.icon}</div>
+      ${l.featured?'<span class="badge-feat">Destaque</span>':''}
+    </div>
+    <div class="listing-body">
+      <div class="listing-cat">${l.material}</div>
+      <div class="listing-title">${l.title}</div>
+      <div class="listing-meta">
+        <span>📍 ${l.city}/${l.state}</span>
+        <span>📦 ${l.qty.toLocaleString('pt-BR')} ${l.unit}</span>
+      </div>
+      <div class="listing-price">
+        <span class="price">R$ ${l.price.toLocaleString('pt-BR')}</span>
+        ${isOwn?'<span class="badge badge-active">Meu Lote</span>':'<span style="font-size:.75rem;color:var(--muted)">'+l.condition+'</span>'}
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderHomeListings() {
+  const active = state.listings.filter(l=>l.status!=='sold').slice(0,8);
+  document.getElementById('home-listings').innerHTML = active.map(l => listingCard(l, `openDetail(${l.id})`)).join('');
+  document.getElementById('h-listings').textContent = state.listings.filter(l=>l.status!=='sold').length;
+  document.getElementById('h-proposals').textContent = state.proposals.length;
+  const gmv = state.transactions.reduce((a,t)=>a+t.amount,0);
+  document.getElementById('h-gmv').textContent = 'R$ '+gmv.toLocaleString('pt-BR');
+}
+
+let filteredListings = null;
+function renderMarketplace() {
+  const list = filteredListings || state.listings.filter(l=>l.status!=='sold');
+  document.getElementById('mkt-count').textContent = `${list.length} lotes encontrados`;
+  document.getElementById('mkt-listings').innerHTML = list.map(l => listingCard(l, `openDetail(${l.id})`)).join('') || '<p style="color:var(--muted);padding:20px">Nenhum resultado.</p>';
+}
+function filterListings() {
+  const q = document.getElementById('mkt-search').value.toLowerCase();
+  const mat = document.getElementById('mkt-material').value;
+  const st = document.getElementById('mkt-state').value;
+  const sort = document.getElementById('mkt-sort').value;
+  let list = state.listings.filter(l=>l.status!=='sold');
+  if (q) list = list.filter(l=>l.title.toLowerCase().includes(q)||l.material.toLowerCase().includes(q));
+  if (mat) list = list.filter(l=>l.material.includes(mat));
+  if (st) list = list.filter(l=>l.state===st);
+  if (sort==='Menor Preço') list.sort((a,b)=>a.price-b.price);
+  else if (sort==='Maior Preço') list.sort((a,b)=>b.price-a.price);
+  filteredListings = list;
+  renderMarketplace();
+}
+function resetFilters() {
+  document.getElementById('mkt-search').value='';
+  document.getElementById('mkt-material').value='';
+  document.getElementById('mkt-state').value='';
+  filteredListings = null;
+  renderMarketplace();
+}
+
+function openDetail(id) {
+  const l = state.listings.find(x=>x.id===id);
+  if (!l) return;
+  state.detailListing = l;
+  const isOwn = state.currentUser && l.owner === state.currentUser.id;
+  const ownerUser = USERS.find(u=>u.id===l.owner) || {name:'Fornecedor Verificado', city:l.city, state:l.state, icon:'🏭'};
+  const comm = (l.price*0.05).toLocaleString('pt-BR');
+  const net = (l.price*0.95).toLocaleString('pt-BR');
+  const existingProp = state.proposals.find(p=>p.listingId===id && state.currentUser && p.buyerId===state.currentUser.id);
+
+  document.getElementById('detail-content').innerHTML = `
+    <div>
+      <div style="background:linear-gradient(135deg,#1a2a3a,#0a1a2a);border-radius:var(--r);height:380px;display:flex;align-items:center;justify-content:center;font-size:80px;border:1px solid var(--border);margin-bottom:16px">${l.icon}</div>
+      <div class="card"><div class="card-header">📋 Descrição</div><div class="card-body">
+        <p style="line-height:1.7;color:var(--text2)">${l.desc||'Sem descrição.'}</p>
+        <div style="margin-top:16px;padding:12px;background:var(--bg2);border-radius:var(--r2);font-size:.82rem;color:var(--muted)">
+          ✅ Origem lícita declarada &nbsp;|&nbsp; 🔒 Compliance KYC verificado ${l.condition==='novo'?'&nbsp;|&nbsp; 📄 Nota Fiscal Disponível':''}
+        </div>
+      </div></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="card"><div class="card-body">
+        <div style="font-size:.72rem;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">${l.material}</div>
+        <h1 style="font-size:1.4rem;margin-bottom:12px">${l.title}</h1>
+        <div style="font-size:2rem;font-weight:800;color:var(--accent);margin-bottom:4px">R$ ${l.price.toLocaleString('pt-BR')}</div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:20px">Comissão plataforma: 5% (R$ ${comm}) — Vendedor recebe: R$ ${net}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+          ${infoBox('Material',l.material)}${infoBox('Condição',l.condition)}
+          ${infoBox('Quantidade',l.qty.toLocaleString('pt-BR')+' '+l.unit)}${infoBox('Entrega','Retirada/Entrega')}
+        </div>
+        <div style="padding:12px;background:var(--bg2);border-radius:var(--r2);margin-bottom:12px">
+          <span style="color:var(--muted);font-size:.78rem">📍 Localização:</span>
+          <strong style="margin-left:8px">${l.city} / ${l.state}</strong>
+        </div>
+      </div></div>
+      <div class="card"><div class="card-body">
+        <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;margin-bottom:10px">🏭 Vendedor</div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:44px;height:44px;border-radius:50%;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px">${ownerUser.icon}</div>
+          <div>
+            <div style="font-weight:600">${ownerUser.name}</div>
+            <div style="font-size:.78rem;color:var(--muted)">📍 ${ownerUser.city}/${ownerUser.state} · ✅ Verificado</div>
+          </div>
+        </div>
+      </div></div>
+      ${isOwn ? `
+        <div class="card"><div class="card-body" style="text-align:center">
+          <div style="color:var(--muted);margin-bottom:8px">Este é seu anúncio</div>
+          <span class="badge badge-active">✅ Ativo no Marketplace</span>
+        </div></div>
+      ` : existingProp ? `
+        <div class="card"><div class="card-body">
+          <div class="alert alert-info">Você já enviou uma proposta de <strong>R$ ${existingProp.amount.toLocaleString('pt-BR')}</strong> para este lote.</div>
+          <button class="btn btn-outline btn-block" onclick="openProposalDetail(${existingProp.id})">Ver Proposta</button>
+        </div></div>
+      ` : state.currentUser ? `
+        <div class="card"><div class="card-header">Fazer Proposta</div><div class="card-body">
+          <div class="form-group">
+            <label class="form-label">Valor da Proposta (R$)</label>
+            <input class="form-control" type="number" id="prop-amount" value="${l.price}" min="1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Mensagem para o Vendedor</label>
+            <textarea class="form-control" id="prop-msg" rows="3" placeholder="Ex: Tenho interesse, posso retirar esta semana..."></textarea>
+          </div>
+          <button class="btn btn-primary btn-block btn-lg" onclick="sendProposal(${l.id})">📤 Enviar Proposta</button>
+          <div style="text-align:center;margin-top:10px;font-size:.75rem;color:var(--muted)">🔒 Pagamento retido em escrow até confirmação de entrega</div>
+        </div></div>
+      ` : `<div class="card"><div class="card-body" style="text-align:center"><a href="#" onclick="doLogout()" class="btn btn-primary">Entrar para propor</a></div></div>`}
+    </div>`;
+  showScreen('detail');
+}
+function infoBox(label, val) {
+  return `<div style="padding:10px;background:var(--bg2);border-radius:var(--r2)"><div style="font-size:.7rem;color:var(--muted)">${label}</div><div style="font-weight:600;margin-top:2px">${val}</div></div>`;
+}
+
+// ═══════════════════════════════════════════
+//  CREATE LISTING
+// ═══════════════════════════════════════════
+function createStep(n) {
+  for(let i=1;i<=4;i++){
+    document.getElementById('create-step-'+i).style.display = i===n?'block':'none';
+    const s = document.getElementById('cstep-'+i);
+    s.className = 'step'+(i<n?' done':i===n?' active':'');
+  }
+  state.createStep = n;
+  if (n===4) buildReview();
+}
+function renderCreateStep(n) { createStep(n); }
+function updatePreview() {
+  const v = parseFloat(document.getElementById('c-price').value)||0;
+  document.getElementById('prev-gross').textContent = 'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2});
+  document.getElementById('prev-comm').textContent = 'R$ '+(v*.05).toLocaleString('pt-BR',{minimumFractionDigits:2});
+  document.getElementById('prev-net').textContent = 'R$ '+(v*.95).toLocaleString('pt-BR',{minimumFractionDigits:2});
+}
+function simulateUpload() {
+  state.uploadDone = true;
+  document.getElementById('upload-icon').textContent = '✅';
+  document.getElementById('upload-text').textContent = 'armacao_pilares.jpg — Upload simulado com sucesso!';
+  document.getElementById('upload-text').style.color = 'var(--success)';
+}
+function buildReview() {
+  const t=document.getElementById('c-title').value||'(sem título)';
+  const mat=document.getElementById('c-material').value;
+  const cond=document.getElementById('c-condition').value;
+  const qty=document.getElementById('c-qty').value;
+  const unit=document.getElementById('c-unit').value;
+  const price=parseFloat(document.getElementById('c-price').value)||0;
+  const city=document.getElementById('c-city').value||'—';
+  const st=document.getElementById('c-state').value;
+  document.getElementById('review-content').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+      ${infoBox('Título',t)}${infoBox('Material',mat)}
+      ${infoBox('Condição',cond)}${infoBox('Quantidade',qty+' '+unit)}
+      ${infoBox('Preço Total','R$ '+price.toLocaleString('pt-BR'))}${infoBox('Localização',city+'/'+st)}
+    </div>
+    <div style="padding:14px;background:var(--bg2);border-radius:var(--r2)">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:var(--text2)">Valor bruto:</span><strong style="color:var(--accent)">R$ ${price.toLocaleString('pt-BR')}</strong></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:var(--text2)">Comissão (5%):</span><span style="color:var(--warn)">R$ ${(price*.05).toLocaleString('pt-BR',{minimumFractionDigits:2})}</span></div>
+      <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:8px"><strong>Você recebe:</strong><strong style="color:var(--success)">R$ ${(price*.95).toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></div>
+    </div>`;
+}
+function publishListing() {
+  const t=document.getElementById('c-title').value.trim();
+  if (!t) { toast('⚠️ Preencha o título!', 'warn'); return; }
+  const price=parseFloat(document.getElementById('c-price').value)||0;
+  const newId = Date.now();
+  const listing = {
+    id:newId,
+    title:t||'Novo Lote',
+    material:document.getElementById('c-material').value,
+    condition:document.getElementById('c-condition').value,
+    qty:parseInt(document.getElementById('c-qty').value)||0,
+    unit:document.getElementById('c-unit').value,
+    price,
+    city:document.getElementById('c-city').value||state.currentUser.city,
+    state:document.getElementById('c-state').value,
+    owner:state.currentUser.id,
+    icon:'📦',
+    featured:false,
+    desc:document.getElementById('c-desc').value,
+    status:'active'
+  };
+  state.listings.unshift(listing);
+  filteredListings = null;
+  toast(`🚀 Anúncio "${t.substring(0,30)}" publicado!`);
+  showScreen('dashboard');
+}
+
+// ═══════════════════════════════════════════
+//  PROPOSALS
+// ═══════════════════════════════════════════
+let propIdCounter = 1;
+function sendProposal(listingId) {
+  const listing = state.listings.find(l=>l.id===listingId);
+  const amount = parseFloat(document.getElementById('prop-amount').value)||listing.price;
+  const msg = document.getElementById('prop-msg').value.trim()||'Tenho interesse neste lote.';
+  const prop = {
+    id: propIdCounter++,
+    listingId,
+    listingTitle: listing.title,
+    buyerId: state.currentUser.id,
+    sellerId: listing.owner || 1,
+    amount,
+    message: msg,
+    status: 'pending',
+    createdAt: new Date().toLocaleString('pt-BR'),
+    counterAmount: null,
+    counterMsg: null,
+  };
+  state.proposals.push(prop);
+  state.messages[prop.id] = [{sender: state.currentUser.id, text: msg, time: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}];
+  toast(`✅ Proposta de R$ ${amount.toLocaleString('pt-BR')} enviada!`);
+  showScreen('proposals');
+  renderProposals('sent');
+}
+
+function renderProposals(tab) {
+  const isRecv = tab === 'received';
+  document.getElementById('ptab-recv').style.cssText = 'padding:10px 20px;cursor:pointer;font-size:.875rem;font-weight:'+(isRecv?'600':'500')+';color:'+(isRecv?'var(--accent)':'var(--text2)')+';border-bottom:2px solid '+(isRecv?'var(--accent)':'transparent');
+  document.getElementById('ptab-sent').style.cssText = 'padding:10px 20px;cursor:pointer;font-size:.875rem;font-weight:'+(!isRecv?'600':'500')+';color:'+(!isRecv?'var(--accent)':'var(--text2)')+';border-bottom:2px solid '+(!isRecv?'var(--accent)':'transparent');
+  if (!state.currentUser) return;
+  const props = state.proposals.filter(p => isRecv ? p.sellerId===state.currentUser.id : p.buyerId===state.currentUser.id);
+  if (!props.length) {
+    document.getElementById('proposals-content').innerHTML = `<div style="text-align:center;padding:60px;color:var(--muted)"><div style="font-size:48px;margin-bottom:16px">${isRecv?'📭':'📤'}</div><h3 style="color:var(--text2);margin-bottom:8px">${isRecv?'Nenhuma proposta recebida':'Nenhuma proposta enviada'}</h3><p>${isRecv?'Publique um lote para receber propostas':'Explore o marketplace e faça uma proposta'}</p></div>`;
+    return;
+  }
+  document.getElementById('proposals-content').innerHTML = `<div style="display:flex;flex-direction:column;gap:12px">${props.map(p=>{
+    const listing = state.listings.find(l=>l.id===p.listingId)||{title:p.listingTitle,icon:'📦'};
+    const other = USERS.find(u=>u.id===(isRecv?p.buyerId:p.sellerId))||{short:'Usuário',icon:'👤'};
+    return `<div class="card" style="cursor:pointer" onclick="openProposalDetail(${p.id})">
+      <div class="card-body" style="display:flex;align-items:center;gap:16px">
+        <div style="font-size:32px">${listing.icon||'📦'}</div>
+        <div style="flex:1">
+          <div style="font-weight:600;margin-bottom:4px">${listing.title||p.listingTitle}</div>
+          <div style="font-size:.82rem;color:var(--text2)">${isRecv?'De':'Para'}: <strong>${other.short}</strong> · ${p.createdAt}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:1.1rem;font-weight:700;color:var(--accent);margin-bottom:6px">R$ ${p.amount.toLocaleString('pt-BR')}</div>
+          <span class="badge badge-${p.status}">${statusLabel(p.status)}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+function showPropTab(tab) { renderProposals(tab); }
+function statusLabel(s) { return {pending:'Aguardando',accepted:'Aceita',rejected:'Recusada',countered:'Contraproposta'}[s]||s; }
+
+function openProposalDetail(propId) {
+  const prop = state.proposals.find(p=>p.id===propId);
+  if (!prop) return;
+  state.detailProposal = prop;
+  const listing = state.listings.find(l=>l.id===prop.listingId)||{title:prop.listingTitle,icon:'📦',price:prop.amount,material:'—',condition:'—'};
+  const buyer = USERS.find(u=>u.id===prop.buyerId)||{name:'Comprador',short:'Comprador',icon:'🛒'};
+  const seller = USERS.find(u=>u.id===prop.sellerId)||{name:'Vendedor',short:'Vendedor',icon:'🏭'};
+  const isCurrentBuyer = state.currentUser && state.currentUser.id === prop.buyerId;
+  const isCurrentSeller = state.currentUser && state.currentUser.id === prop.sellerId;
+  const msgs = state.messages[propId] || [];
+
+  document.getElementById('proposal-detail-content').innerHTML = `
+    <div>
+      <div class="card" style="margin-bottom:16px"><div class="card-body">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+          <div>
+            <h2 style="font-size:1.3rem;margin-bottom:6px">${listing.title}</h2>
+            <div style="font-size:.82rem;color:var(--muted)">Proposta enviada em ${prop.createdAt}</div>
+          </div>
+          <span class="badge badge-${prop.status}" style="font-size:.85rem;padding:6px 14px">${statusLabel(prop.status)}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+          <div style="padding:16px;background:var(--bg2);border-radius:var(--r2)">
+            <div style="font-size:.75rem;color:var(--muted);margin-bottom:4px">💰 Proposta Original</div>
+            <div style="font-size:1.5rem;font-weight:800;color:var(--accent)">R$ ${prop.amount.toLocaleString('pt-BR')}</div>
+          </div>
+          ${prop.counterAmount?`<div style="padding:16px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:var(--r2)"><div style="font-size:.75rem;color:var(--warn);margin-bottom:4px">🔄 Contraproposta</div><div style="font-size:1.5rem;font-weight:800;color:var(--warn)">R$ ${prop.counterAmount.toLocaleString('pt-BR')}</div><div style="font-size:.78rem;color:var(--text2);margin-top:6px">${prop.counterMsg||''}</div></div>`:`<div style="padding:16px;background:var(--bg2);border-radius:var(--r2)"><div style="font-size:.75rem;color:var(--muted);margin-bottom:4px">📦 Preço do Lote</div><div style="font-size:1.5rem;font-weight:800;color:var(--text2)">R$ ${listing.price.toLocaleString('pt-BR')}</div></div>`}
+        </div>
+        ${prop.status==='pending' && isCurrentSeller ? `
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-success" onclick="acceptProposal(${propId})">✅ Aceitar Proposta</button>
+            <button class="btn btn-secondary" onclick="showCounterForm(${propId})">🔄 Fazer Contraproposta</button>
+            <button class="btn btn-danger" onclick="rejectProposal(${propId})">❌ Recusar</button>
+          </div>
+          <div id="counter-form" style="display:none;margin-top:16px;padding:16px;background:var(--bg2);border-radius:var(--r2)">
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Valor da Contraproposta</label>
+                <input class="form-control" type="number" id="counter-val" value="${prop.amount}">
+              </div>
+              <div class="form-group"><label class="form-label">Mensagem</label>
+                <input class="form-control" id="counter-msg-input" placeholder="Ex: Aceito nesse valor...">
+              </div>
+            </div>
+            <button class="btn btn-primary" onclick="sendCounter(${propId})">Enviar Contraproposta</button>
+          </div>
+        ` : prop.status==='countered' && isCurrentBuyer ? `
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-success" onclick="acceptCounter(${propId})">✅ Aceitar Contraproposta</button>
+            <button class="btn btn-danger" onclick="rejectProposal(${propId})">❌ Recusar</button>
+          </div>
+        ` : prop.status==='accepted' ? `
+          <div class="alert alert-success">✅ Proposta aceita! Prossiga para o pagamento.</div>
+          ${isCurrentBuyer ? `<button class="btn btn-primary" onclick="openTransaction(${propId})">💳 Ir para Pagamento →</button>` : ''}
+        ` : prop.status==='rejected' ? `
+          <div class="alert" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--danger)">❌ Proposta recusada.</div>
+        ` : prop.status==='pending' && isCurrentBuyer ? `
+          <div class="alert alert-info">⏳ Aguardando resposta do vendedor...</div>
+        ` : ''}
+      </div></div>
+
+      <div class="card"><div class="card-header">💬 Mensagens</div>
+        <div class="chat-box" id="chat-msgs">
+          ${msgs.map(m=>{
+            const isSelf = state.currentUser && m.sender === state.currentUser.id;
+            const senderUser = USERS.find(u=>u.id===m.sender)||{short:'?'};
+            return `<div class="msg ${isSelf?'sent':'recv'}">
+              <div>${m.text}</div>
+              <div class="msgtime">${senderUser.short} · ${m.time}</div>
+            </div>`;
+          }).join('')||'<div style="text-align:center;color:var(--muted);padding:20px">Inicie a conversa...</div>'}
+        </div>
+        <div style="padding:14px;border-top:1px solid var(--border);display:flex;gap:8px">
+          <input class="form-control" id="chat-input" placeholder="Enviar mensagem..." onkeypress="if(event.key==='Enter')sendMsg(${propId})">
+          <button class="btn btn-primary" onclick="sendMsg(${propId})">📤</button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card" style="margin-bottom:16px"><div class="card-body">
+        <h3 style="font-size:.9rem;color:var(--muted);text-transform:uppercase;margin-bottom:16px">📦 Detalhes do Lote</h3>
+        <div style="font-size:48px;text-align:center;margin-bottom:12px">${listing.icon||'📦'}</div>
+        <div style="font-weight:600;text-align:center;margin-bottom:16px">${listing.title}</div>
+        ${infoBox('Material',listing.material||'—')}
+        <div style="height:8px"></div>
+        ${infoBox('Condição',listing.condition||'—')}
+        <div style="height:8px"></div>
+        ${infoBox('Preço Anunciado','R$ '+listing.price.toLocaleString('pt-BR'))}
+      </div></div>
+
+      <div class="card"><div class="card-body">
+        <h3 style="font-size:.9rem;color:var(--muted);text-transform:uppercase;margin-bottom:14px">👥 Partes Envolvidas</h3>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <div style="font-size:24px">${buyer.icon}</div>
+          <div><div style="font-size:.75rem;color:var(--muted)">Comprador</div><div style="font-weight:600">${buyer.short}</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="font-size:24px">${seller.icon}</div>
+          <div><div style="font-size:.75rem;color:var(--muted)">Vendedor</div><div style="font-weight:600">${seller.short}</div></div>
+        </div>
+      </div></div>
+
+      <div class="card" style="margin-top:16px"><div class="card-body">
+        <h3 style="font-size:.9rem;color:var(--muted);text-transform:uppercase;margin-bottom:14px">🔒 Escrow & Pagamento</h3>
+        <div style="font-size:.82rem;color:var(--text2);line-height:2">
+          💳 Pix ou Cartão<br>
+          🔒 Valor retido em escrow<br>
+          📦 Liberado após entrega<br>
+          📅 Repasse D+2<br>
+          💰 Comissão: 5% (R$ ${(prop.amount*.05).toLocaleString('pt-BR',{minimumFractionDigits:2})})
+        </div>
+      </div></div>
+    </div>`;
+
+  showScreen('proposal-detail');
+  setTimeout(()=>{ const cb = document.getElementById('chat-msgs'); if(cb) cb.scrollTop=cb.scrollHeight; },100);
+}
+
+function showCounterForm(id) { document.getElementById('counter-form').style.display='block'; }
+function acceptProposal(id) {
+  const p = state.proposals.find(x=>x.id===id);
+  p.status = 'accepted';
+  toast('✅ Proposta aceita! Transação criada.');
+  openProposalDetail(id);
+}
+function rejectProposal(id) {
+  state.proposals.find(x=>x.id===id).status = 'rejected';
+  toast('Proposta recusada.', 'warn');
+  openProposalDetail(id);
+}
+function sendCounter(id) {
+  const p = state.proposals.find(x=>x.id===id);
+  const val = parseFloat(document.getElementById('counter-val').value)||p.amount;
+  const msg = document.getElementById('counter-msg-input').value||'Podemos fechar nesse valor?';
+  p.status = 'countered';
+  p.counterAmount = val;
+  p.counterMsg = msg;
+  toast(`🔄 Contraproposta de R$ ${val.toLocaleString('pt-BR')} enviada!`);
+  openProposalDetail(id);
+}
+function acceptCounter(id) {
+  const p = state.proposals.find(x=>x.id===id);
+  p.amount = p.counterAmount;
+  p.status = 'accepted';
+  toast('✅ Contraproposta aceita! Transação criada.');
+  openProposalDetail(id);
+}
+function sendMsg(propId) {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  if (!state.messages[propId]) state.messages[propId] = [];
+  state.messages[propId].push({
+    sender: state.currentUser.id,
+    text,
+    time: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})
+  });
+  input.value = '';
+  openProposalDetail(propId);
+}
+
+// ═══════════════════════════════════════════
+//  TRANSACTIONS
+// ═══════════════════════════════════════════
+let txIdCounter = 1;
+function openTransaction(propId) {
+  const prop = state.proposals.find(p=>p.id===propId);
+  let tx = state.transactions.find(t=>t.propId===propId);
+  if (!tx) {
+    tx = { id:txIdCounter++, propId, listingId:prop.listingId, buyerId:prop.buyerId, sellerId:prop.sellerId,
+      amount:prop.amount, commission:prop.amount*.05, net:prop.amount*.95, status:'pending',
+      method:null, createdAt:new Date().toLocaleString('pt-BR') };
+    state.transactions.push(tx);
+  }
+  state.detailTransaction = tx;
+  renderTransaction(tx);
+  showScreen('transaction');
+}
+
+function renderTransaction(tx) {
+  const listing = state.listings.find(l=>l.id===tx.listingId)||{title:'Lote',icon:'📦'};
+  const buyer = USERS.find(u=>u.id===tx.buyerId)||{short:'Comprador',icon:'🛒'};
+  const seller = USERS.find(u=>u.id===tx.sellerId)||{short:'Vendedor',icon:'🏭'};
+  const isCurrentBuyer = state.currentUser && state.currentUser.id === tx.buyerId;
+
+  const tlSteps = [
+    {done:true, active:false, icon:'✅', title:'Proposta Aceita', sub:'Ambas as partes concordaram com o valor'},
+    {done:tx.status!=='pending', active:tx.status==='pending', icon:'💳', title:'Pagamento', sub:tx.method?`${tx.method.toUpperCase()} — R$ ${tx.amount.toLocaleString('pt-BR')}`:'Aguardando pagamento'},
+    {done:['escrow','released'].includes(tx.status), active:tx.status==='escrow'&&!['released'].includes(tx.status), icon:'🔒', title:'Escrow Ativo', sub:'Valor retido até confirmação de entrega'},
+    {done:tx.status==='released', active:false, icon:'🚚', title:'Entrega & Liberação', sub:tx.status==='released'?'Entrega confirmada — valor liberado ao vendedor':'Aguardando confirmação'},
+  ];
+
+  document.getElementById('transaction-content').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 360px;gap:24px">
+      <div>
+        <div class="card" style="margin-bottom:20px"><div class="card-body">
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+            <div style="font-size:40px">${listing.icon}</div>
+            <div>
+              <h2 style="font-size:1.2rem;margin-bottom:4px">${listing.title}</h2>
+              <div style="font-size:.82rem;color:var(--muted)">Transação #${tx.id} · ${tx.createdAt}</div>
+            </div>
+            <span class="badge badge-${tx.status==='released'?'accepted':tx.status}" style="margin-left:auto">${{pending:'Aguardando Pgto',escrow:'Em Escrow',released:'Concluída'}[tx.status]||tx.status}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+            <div style="padding:14px;background:var(--bg2);border-radius:var(--r2);text-align:center">
+              <div style="font-size:.72rem;color:var(--muted);margin-bottom:4px">Valor Bruto</div>
+              <div style="font-size:1.2rem;font-weight:800;color:var(--accent)">R$ ${tx.amount.toLocaleString('pt-BR')}</div>
+            </div>
+            <div style="padding:14px;background:var(--bg2);border-radius:var(--r2);text-align:center">
+              <div style="font-size:.72rem;color:var(--muted);margin-bottom:4px">Comissão (5%)</div>
+              <div style="font-size:1.2rem;font-weight:800;color:var(--warn)">R$ ${tx.commission.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+            </div>
+            <div style="padding:14px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:var(--r2);text-align:center">
+              <div style="font-size:.72rem;color:var(--muted);margin-bottom:4px">Vendedor Recebe</div>
+              <div style="font-size:1.2rem;font-weight:800;color:var(--success)">R$ ${tx.net.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+            </div>
+          </div>
+        </div></div>
+
+        ${tx.status==='pending' && isCurrentBuyer ? `
+          <div class="card"><div class="card-header">💳 Realizar Pagamento</div><div class="card-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+              <div style="padding:18px;border:2px solid var(--border);border-radius:var(--r2);cursor:pointer;text-align:center;transition:var(--trans)" onclick="payWith('pix',${tx.id})" id="pay-pix"
+                onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+                <div style="font-size:32px;margin-bottom:8px">📱</div>
+                <div style="font-weight:700;font-size:1rem">Pix</div>
+                <div style="font-size:.78rem;color:var(--muted);margin-top:4px">Instantâneo · 0% taxa extra</div>
+                <div style="margin-top:8px"><span class="badge badge-active">Recomendado</span></div>
+              </div>
+              <div style="padding:18px;border:2px solid var(--border);border-radius:var(--r2);cursor:pointer;text-align:center;transition:var(--trans)" onclick="payWith('cartao',${tx.id})"
+                onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+                <div style="font-size:32px;margin-bottom:8px">💳</div>
+                <div style="font-weight:700;font-size:1rem">Cartão</div>
+                <div style="font-size:.78rem;color:var(--muted);margin-top:4px">Até 12x · Parcelado</div>
+              </div>
+            </div>
+            <div style="padding:12px;background:var(--bg2);border-radius:var(--r2);font-size:.8rem;color:var(--muted)">
+              🔒 Valor retido em escrow até confirmação de entrega. Liberação automática em D+2 após aceite.
+            </div>
+          </div></div>
+        ` : tx.status==='escrow' ? `
+          <div class="card"><div class="card-header">📦 Logística & Entrega</div><div class="card-body">
+            <div class="alert alert-info">💳 Pagamento via ${tx.method?.toUpperCase()} confirmado. Valor em escrow.</div>
+            <div style="padding:16px;background:var(--bg2);border-radius:var(--r2);margin-bottom:16px">
+              <div style="font-weight:600;margin-bottom:8px">📅 Agendamento de Retirada</div>
+              <input class="form-control" type="date" id="pickup-date" style="margin-bottom:8px">
+              <input class="form-control" type="time" id="pickup-time" value="09:00">
+            </div>
+            ${isCurrentBuyer ? `<button class="btn btn-success btn-block" onclick="confirmDelivery(${tx.id})">✅ Confirmar Recebimento e Liberar Pagamento</button>
+              <div style="text-align:center;font-size:.75rem;color:var(--muted);margin-top:8px">Ao confirmar, R$ ${tx.net.toLocaleString('pt-BR',{minimumFractionDigits:2})} será liberado ao vendedor</div>` : `<div class="alert alert-info">⏳ Aguardando o comprador confirmar o recebimento...</div>`}
+          </div></div>
+        ` : tx.status==='released' ? `
+          <div class="card"><div class="card-body" style="text-align:center;padding:32px">
+            <div style="font-size:64px;margin-bottom:16px">🎉</div>
+            <h2 style="margin-bottom:8px;color:var(--success)">Transação Concluída!</h2>
+            <p style="color:var(--text2);margin-bottom:20px">R$ ${tx.net.toLocaleString('pt-BR',{minimumFractionDigits:2})} liberado ao vendedor. Obrigado pela negociação!</p>
+            <button class="btn btn-primary" onclick="showScreen('marketplace')">Explorar mais lotes</button>
+          </div></div>
+        ` : ''}
+      </div>
+
+      <div>
+        <div class="card" style="margin-bottom:16px"><div class="card-body">
+          <h3 style="font-size:.85rem;color:var(--muted);text-transform:uppercase;margin-bottom:16px">📊 Progresso</h3>
+          <div class="timeline">${tlSteps.map(s=>`
+            <div class="tl-item">
+              <div class="tl-dot ${s.done?'done':s.active?'active':''}">${s.done?'✓':s.active?'●':'○'}</div>
+              <div class="tl-content"><h4>${s.title}</h4><p>${s.sub}</p></div>
+            </div>`).join('')}
+          </div>
+        </div></div>
+        <div class="card"><div class="card-body">
+          <h3 style="font-size:.85rem;color:var(--muted);text-transform:uppercase;margin-bottom:14px">👥 Partes</h3>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <div style="font-size:22px">${buyer.icon}</div>
+            <div><div style="font-size:.72rem;color:var(--muted)">Comprador</div><strong>${buyer.short}</strong></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="font-size:22px">${seller.icon}</div>
+            <div><div style="font-size:.72rem;color:var(--muted)">Vendedor</div><strong>${seller.short}</strong></div>
+          </div>
+        </div></div>
+      </div>
+    </div>`;
+}
+
+function payWith(method, txId) {
+  const tx = state.transactions.find(t=>t.id===txId);
+  tx.method = method;
+  tx.status = 'escrow';
+  toast(`✅ Pagamento via ${method.toUpperCase()} simulado! Valor em escrow.`);
+  renderTransaction(tx);
+}
+function confirmDelivery(txId) {
+  const tx = state.transactions.find(t=>t.id===txId);
+  tx.status = 'released';
+  toast(`🎉 Entrega confirmada! R$ ${tx.net.toLocaleString('pt-BR',{minimumFractionDigits:2})} liberado.`);
+  renderTransaction(tx);
+}
+
+// ═══════════════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════════════
+function renderDashboard() {
+  if (!state.currentUser) return;
+  const u = state.currentUser;
+  document.getElementById('dash-greeting').textContent = `Olá, ${u.short}! 👋`;
+  document.getElementById('dash-sub').textContent = `${u.name} · ${u.city}/${u.state}`;
+
+  const myListings = state.listings.filter(l=>l.owner===u.id);
+  const myPropsRecv = state.proposals.filter(p=>p.sellerId===u.id);
+  const myPropsSent = state.proposals.filter(p=>p.buyerId===u.id);
+  const myTxs = state.transactions.filter(t=>t.buyerId===u.id||t.sellerId===u.id);
+  const totalSold = state.transactions.filter(t=>t.sellerId===u.id&&t.status==='released').reduce((a,t)=>a+t.net,0);
+  const totalBought = state.transactions.filter(t=>t.buyerId===u.id&&t.status==='released').reduce((a,t)=>a+t.amount,0);
+
+  document.getElementById('dash-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-icon si-blue">📋</div><div class="stat-val">${myListings.length}</div><div class="stat-lbl">Lotes Ativos</div></div>
+    <div class="stat-card"><div class="stat-icon si-yellow">🤝</div><div class="stat-val">${myPropsRecv.filter(p=>p.status==='pending').length}</div><div class="stat-lbl">Propostas Pendentes</div></div>
+    <div class="stat-card"><div class="stat-icon si-green">💰</div><div class="stat-val">R$ ${totalSold.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div><div class="stat-lbl">Total Vendido</div></div>
+    <div class="stat-card"><div class="stat-icon si-red">🛒</div><div class="stat-val">R$ ${totalBought.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div><div class="stat-lbl">Total Comprado</div></div>`;
+
+  document.getElementById('dash-listings').innerHTML = myListings.length ? myListings.slice(0,5).map(l=>`
+    <div style="padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="openDetail(${l.id})">
+      <div><div style="font-weight:600;font-size:.875rem">${l.title.substring(0,35)}...</div><div style="font-size:.78rem;color:var(--muted)">${l.material} · ${l.city}/${l.state}</div></div>
+      <div style="text-align:right"><div style="color:var(--accent);font-weight:600">R$ ${l.price.toLocaleString('pt-BR')}</div><span class="badge badge-active">Ativo</span></div>
+    </div>`).join('') : '<div style="padding:24px;text-align:center;color:var(--muted)"><button class="btn btn-primary" onclick="showScreen(\'create\')">+ Publicar primeiro lote</button></div>';
+
+  const allProps = [...myPropsRecv, ...myPropsSent];
+  document.getElementById('dash-proposals').innerHTML = allProps.length ? allProps.slice(0,5).map(p=>`
+    <div style="padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="openProposalDetail(${p.id})">
+      <div><div style="font-weight:600;font-size:.875rem">${(p.listingTitle||'Lote').substring(0,30)}...</div><div style="font-size:.78rem;color:var(--muted)">${p.createdAt}</div></div>
+      <div style="text-align:right"><div style="color:var(--accent);font-weight:600">R$ ${p.amount.toLocaleString('pt-BR')}</div><span class="badge badge-${p.status}">${statusLabel(p.status)}</span></div>
+    </div>`).join('') : '<div style="padding:24px;text-align:center;color:var(--muted)">Nenhuma proposta ainda</div>';
+
+  document.getElementById('dash-transactions').innerHTML = myTxs.length ? `
+    <div class="table-wrap"><table>
+      <thead><tr><th>Lote</th><th>Valor</th><th>Comissão</th><th>Líquido</th><th>Status</th></tr></thead>
+      <tbody>${myTxs.map(tx=>{
+        const l = state.listings.find(x=>x.id===tx.listingId)||{title:'Lote'};
+        return `<tr style="cursor:pointer" onclick="openTransaction(${tx.propId})">
+          <td>${l.title.substring(0,35)}...</td>
+          <td style="color:var(--accent);font-weight:600">R$ ${tx.amount.toLocaleString('pt-BR')}</td>
+          <td style="color:var(--warn)">R$ ${tx.commission.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+          <td style="color:var(--success)">R$ ${tx.net.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+          <td><span class="badge badge-${tx.status==='released'?'accepted':tx.status}">${{pending:'Aguardando Pgto',escrow:'Em Escrow',released:'Concluída'}[tx.status]}</span></td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div>` : '<div style="padding:24px;text-align:center;color:var(--muted)">Nenhuma transação ainda</div>';
+}
+
+// ═══════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════
+function toast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = type==='warn'?'var(--warn)':type==='info'?'var(--blue)':'var(--success)';
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 3500);
+}
+
+// ═══════════════════════════════════════════
+//  START
+// ═══════════════════════════════════════════
+init();
+</script>
+</body>
+</html>

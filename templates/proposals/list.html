@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Propostas — {{ platform_name }}{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1 class="page-title">💬 Propostas</h1>
+        <a href="{{ url_for('listing_create') }}" class="btn">➕ Criar Anúncio</a>
+    </div>
+
+    <!-- Tabs for Received/Sent -->
+    <div style="display: flex; gap: 2rem; margin-bottom: 2rem; border-bottom: 2px solid var(--border);">
+        <a href="?tab=received" style="padding-bottom: 1rem; border-bottom: 3px solid {% if tab == 'received' %}var(--accent){% else %}transparent{% endif %}; color: {% if tab == 'received' %}var(--accent){% else %}var(--text-muted){% endif %}; text-decoration: none; font-weight: {% if tab == 'received' %}600{% else %}400{% endif %};">
+            📥 Recebidas
+        </a>
+        <a href="?tab=sent" style="padding-bottom: 1rem; border-bottom: 3px solid {% if tab == 'sent' %}var(--accent){% else %}transparent{% endif %}; color: {% if tab == 'sent' %}var(--accent){% else %}var(--text-muted){% endif %}; text-decoration: none; font-weight: {% if tab == 'sent' %}600{% else %}400{% endif %};">
+            📤 Enviadas
+        </a>
+    </div>
+
+    <!-- Proposals List -->
+    {% if proposals %}
+        <div class="grid grid-2">
+            {% for proposal in proposals %}
+                <a href="{{ url_for('proposal_detail', uid=proposal.uid) }}" style="text-decoration: none;">
+                    <div class="card">
+                        <div class="card-body">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                                <h5 style="color: var(--text-primary); margin: 0; flex: 1;">
+                                    {{ proposal.listing.title[:40] }}{% if proposal.listing.title|length > 40 %}...{% endif %}
+                                </h5>
+                                <span class="badge-status badge-{{ proposal.status|lower }}" style="white-space: nowrap; margin-left: 0.5rem;">
+                                    {{ proposal.status|upper }}
+                                </span>
+                            </div>
+
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 1rem; font-size: 0.9rem;">
+                                <div>
+                                    <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">Valor</p>
+                                    <p style="color: var(--accent); font-weight: 600; margin: 0;">{{ proposal.amount|brl }}</p>
+                                </div>
+                                <div style="text-align: right;">
+                                    <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">Data</p>
+                                    <p style="color: var(--text-secondary); margin: 0;">{{ proposal.created_at.strftime('%d/%m/%Y') }}</p>
+                                </div>
+                            </div>
+
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.5rem; border-top: 1px solid var(--border);">
+                                <span style="color: var(--text-muted); font-size: 0.85rem;">
+                                    {% if proposal.status == 'pending' %}
+                                        ⏳ Aguardando resposta
+                                    {% elif proposal.status == 'countered' %}
+                                        🔄 Counter: {{ proposal.counter_amount|brl }}
+                                    {% else %}
+                                        {{ proposal.status|capitalize }}
+                                    {% endif %}
+                                </span>
+                                <span style="color: var(--accent);">→</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state" style="padding: 4rem 2rem; text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📬</div>
+            <p style="color: var(--text-muted);">
+                {% if tab == 'received' %}
+                    Nenhuma proposta recebida ainda. Mantenha seus anúncios atualizados para atrair ofertas.
+                {% else %}
+                    Nenhuma proposta enviada ainda. Navegue pelo marketplace para fazer ofertas.
+                {% endif %}
+            </p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
