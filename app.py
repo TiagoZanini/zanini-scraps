@@ -992,7 +992,7 @@ def buy_now(uid):
 
 
 # ─── MIGRATION (admin, executar 1x) ───
-@app.route('/admin/migrate-venda-imediata', methods=['POST'])
+@app.route('/admin/migrate-venda-imediata', methods=['GET', 'POST'])
 @login_required
 @admin_required
 def migrate_venda_imediata():
