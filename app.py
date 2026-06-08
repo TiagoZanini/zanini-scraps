@@ -991,6 +991,28 @@ def buy_now(uid):
     return redirect(url_for('transaction_detail', uid=tx.uid))
 
 
+# ─── SETUP ADMIN (executar 1x, protegido por token) ───
+@app.route('/setup-admin')
+def setup_admin():
+    token = request.args.get('token', '')
+    secret = app.config.get('SECRET_KEY', '')
+    if not token or token != secret[:16]:
+        abort(403)
+    from modules.models import User
+    admin = User.query.filter_by(role='admin').first()
+    nova_senha = 'ZaniniAdmin2026!'
+    if admin:
+        admin.set_password(nova_senha)
+        db.session.commit()
+        return f'Senha do admin ({admin.email}) redefinida para: {nova_senha}'
+    else:
+        admin = User(name='Zanini Admin', email='admin@zaniniscraps.com.br', role='admin')
+        admin.set_password(nova_senha)
+        db.session.add(admin)
+        db.session.commit()
+        return f'Admin criado: {admin.email} / {nova_senha}'
+
+
 # ─── MIGRATION (admin, executar 1x) ───
 @app.route('/admin/migrate-venda-imediata', methods=['GET', 'POST'])
 @login_required
