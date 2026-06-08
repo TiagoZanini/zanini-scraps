@@ -168,6 +168,22 @@
                 </div>
             </div>
 
+            <!-- Comprar Agora (Venda Imediata) -->
+            {% if listing.venda_imediata and listing.status == 'active' and current_user.is_authenticated and current_user.id != listing.seller_id %}
+            <div class="card" style="border:2px solid var(--accent);">
+                <div class="card-body">
+                    <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--accent);margin-bottom:8px;">Venda Imediata</div>
+                    <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:14px;">Compre agora pelo valor anunciado, sem esperar negociação.</p>
+                    <form method="POST" action="{{ url_for('buy_now', uid=listing.uid) }}">
+                        <button type="submit" class="btn btn-primary btn-block btn-lg" onclick="return confirm('Confirmar compra por {{ listing.price|brl }}?')">
+                            Comprar Agora &mdash; {{ listing.price|brl }}
+                        </button>
+                    </form>
+                    <p style="font-size:0.72rem;color:var(--text-muted);margin-top:8px;text-align:center;">O lote é reservado imediatamente. Pagamento via PIX.</p>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Proposal Form -->
             {% if current_user.is_authenticated and current_user.id != listing.seller_id and listing.status == 'active' %}
             <div class="proposal-box">

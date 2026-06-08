@@ -344,6 +344,7 @@ def listing_create():
             availability=request.form.get('availability', ''),
             observations=request.form.get('observations', ''),
             who_picks_up=request.form.get('who_picks_up', 'comprador'),
+            venda_imediata=bool(request.form.get('venda_imediata')),
             status=request.form.get('status', 'active'),
         )
         db.session.add(listing)
@@ -394,6 +395,7 @@ def listing_edit(uid):
         listing.availability = request.form.get('availability', listing.availability)
         listing.observations = request.form.get('observations', listing.observations)
         listing.who_picks_up = request.form.get('who_picks_up', listing.who_picks_up)
+        listing.venda_imediata = bool(request.form.get('venda_imediata'))
         listing.status = request.form.get('status', listing.status)
 
         # Novas imagens
@@ -665,7 +667,8 @@ def transaction_pay(uid):
     mp_enabled = bool(app.config.get('MP_ACCESS_TOKEN'))
     if mp_enabled:
         try:
-            descricao = f'Zanini Scraps — {tx.proposal.listing.title[:80]}'
+            _listing = tx.proposal.listing if tx.proposal_id else Listing.query.get(tx.listing_id)
+            descricao = f'Zanini Scraps — {_listing.title[:80]}' if _listing else 'Zanini Scraps — Lote'
             if method == 'pix':
                 resultado = mp.criar_pagamento_pix(
                     tx_uid=tx.uid,
@@ -707,9 +710,10 @@ def transaction_pay(uid):
     # ── Modo simulado (sem credenciais MP configuradas) ──
     tx.payment_status = 'escrow'
     tx.escrow_release_date = datetime.utcnow() + timedelta(days=app.config['ESCROW_RELEASE_DAYS'])
-    proposal = Proposal.query.get(tx.proposal_id)
-    if proposal:
-        listing = Listing.query.get(proposal.listing_id)
+    proposal = Proposal.query.get(tx.proposal_id) if tx.proposal_id else None
+    _lid = proposal.listing_id if proposal else tx.listing_id
+    if _lid:
+        listing = Listing.query.get(_lid)
         if listing:
             listing.status = 'reserved'
     db.session.commit()
@@ -725,9 +729,10 @@ def confirm_delivery(uid):
     tx.logistics_status = 'confirmed'
     tx.delivery_date = datetime.utcnow()
 
-    proposal = Proposal.query.get(tx.proposal_id)
-    if proposal:
-        listing = Listing.query.get(proposal.listing_id)
+    proposal = Proposal.query.get(tx.proposal_id) if tx.proposal_id else None
+    _lid = proposal.listing_id if proposal else tx.listing_id
+    if _lid:
+        listing = Listing.query.get(_lid)
         if listing:
             listing.status = 'sold'
 
@@ -827,9 +832,10 @@ def mp_webhook():
             tx.escrow_release_date = datetime.utcnow() + timedelta(days=app.config['ESCROW_RELEASE_DAYS'])
 
             # Marcar listing como reservado
-            proposal = Proposal.query.get(tx.proposal_id)
-            if proposal:
-                listing = Listing.query.get(proposal.listing_id)
+            proposal = Proposal.query.get(tx.proposal_id) if tx.proposal_id else None
+            _lid = proposal.listing_id if proposal else tx.listing_id
+            if _lid:
+                listing = Listing.query.get(_lid)
                 if listing:
                     listing.status = 'reserved'
 
@@ -946,6 +952,66 @@ def freight_estimate():
     rate = app.config['FREIGHT_RATE_PER_KM']
     cost = distance_km * rate * max(1, volume_m3 * 0.3)
     return jsonify({'estimated_cost': round(cost, 2), 'distance_km': distance_km})
+
+
+# ─── VENDA IMEDIATA ───
+@app.route('/listing/<uid>/comprar-agora', methods=['POST'])
+@login_required
+def buy_now(uid):
+    listing = Listing.query.filter_by(uid=uid, status='active', venda_imediata=True).first_or_404()
+    if listing.seller_id == current_user.id:
+        flash('Você não pode comprar seu próprio lote.', 'danger')
+        return redirect(url_for('listing_detail', uid=uid))
+
+    commission = listing.price * app.config['COMMISSION_RATE']
+    tx = Transaction(
+        listing_id=listing.id,
+        buyer_id=current_user.id,
+        seller_id=listing.seller_id,
+        gross_amount=listing.price,
+        commission=commission,
+        net_amount=listing.price - commission,
+        payment_status='pending',
+        escrow_release_date=datetime.utcnow() + timedelta(days=app.config['ESCROW_RELEASE_DAYS'])
+    )
+    db.session.add(tx)
+    listing.status = 'reserved'
+
+    notif = Notification(
+        user_id=listing.seller_id,
+        type='transaction',
+        title='Compra imediata recebida!',
+        content=f'{current_user.name} comprou seu lote "{listing.title[:60]}" por {brl(listing.price)}.',
+        link='#'
+    )
+    db.session.add(notif)
+    db.session.commit()
+
+    flash('Lote reservado! Realize o pagamento para confirmar.', 'success')
+    return redirect(url_for('transaction_detail', uid=tx.uid))
+
+
+# ─── MIGRATION (admin, executar 1x) ───
+@app.route('/admin/migrate-venda-imediata', methods=['POST'])
+@login_required
+@admin_required
+def migrate_venda_imediata():
+    try:
+        db.session.execute(db.text(
+            "ALTER TABLE listings ADD COLUMN IF NOT EXISTS venda_imediata BOOLEAN DEFAULT FALSE NOT NULL"
+        ))
+        db.session.execute(db.text(
+            "ALTER TABLE transactions ALTER COLUMN proposal_id DROP NOT NULL"
+        ))
+        db.session.execute(db.text(
+            "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS listing_id INTEGER REFERENCES listings(id)"
+        ))
+        db.session.commit()
+        flash('Migracao executada com sucesso!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro na migracao: {str(e)[:200]}', 'danger')
+    return redirect(url_for('admin_dashboard'))
 
 
 # ─── Error handlers ───

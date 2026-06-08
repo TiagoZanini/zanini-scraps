@@ -121,6 +121,9 @@ class Listing(db.Model):
     observations       = db.Column(db.Text)          # Observações adicionais para o comprador
     who_picks_up       = db.Column(db.String(100), default='comprador')  # comprador, vendedor, negociavel
 
+    # Venda Imediata
+    venda_imediata     = db.Column(db.Boolean, default=False)
+
     # Datas
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -199,7 +202,8 @@ class Transaction(db.Model):
     __tablename__ = 'transactions'
     id = db.Column(db.Integer, primary_key=True)
     uid = db.Column(db.String(36), unique=True, default=lambda: str(uuid.uuid4()))
-    proposal_id = db.Column(db.Integer, db.ForeignKey('proposals.id'), nullable=False)
+    proposal_id = db.Column(db.Integer, db.ForeignKey('proposals.id'), nullable=True)
+    listing_id  = db.Column(db.Integer, db.ForeignKey('listings.id'),  nullable=True)   # venda imediata
     buyer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     seller_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 

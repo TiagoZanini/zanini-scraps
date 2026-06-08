@@ -8,7 +8,9 @@
             <span>Sem imagem</span>
         </div>
         {% endif %}
-        {% if listing.is_featured %}
+        {% if listing.venda_imediata %}
+        <span class="badge-featured" style="background:var(--accent);color:#fff;">Venda Imediata</span>
+        {% elif listing.is_featured %}
         <span class="badge-featured">Destaque</span>
         {% endif %}
         {% if listing.condition %}
