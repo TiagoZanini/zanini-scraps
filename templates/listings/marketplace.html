@@ -4,7 +4,7 @@
 <div class="container page-content">
     <div class="page-header">
         <h1 class="page-title">Marketplace</h1>
-        <p class="page-subtitle">Encontre sobras industriais de todo o Brasil</p>
+        <p class="page-subtitle">Sobras de obra e materiais de construção civil de todo o Brasil</p>
     </div>
     <div class="two-col">
         <!-- Filters -->
@@ -69,7 +69,7 @@
         <!-- Results -->
         <div>
             {% if listings %}
-            <div style="margin-bottom:16px; color:var(--text-muted); font-size:0.85rem;">
+            <div class="results-count">
                 {{ pagination.total }} resultado(s) encontrado(s)
             </div>
             <div class="grid grid-3">
@@ -101,7 +101,7 @@
             {% endif %}
             {% else %}
             <div class="empty-state">
-                <div class="icon">🔍</div>
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.25;margin-bottom:12px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <h3>Nenhum resultado encontrado</h3>
                 <p>Tente ajustar seus filtros ou buscar por outros termos.</p>
             </div>
