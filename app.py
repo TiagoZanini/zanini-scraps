@@ -963,8 +963,8 @@ def server_error(e):
 
 
 # ─── Init DB ───
-with app.app_context():
-    db.create_all()
+# db.create_all() é executado via init_db.py — não executar aqui para evitar
+# crash no boot se o banco ainda não estiver pronto.
 
 
 if __name__ == '__main__':
