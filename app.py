@@ -1099,15 +1099,26 @@ def cron_release_escrow():
 @admin_required
 def migrate_venda_imediata():
     try:
-        db.session.execute(db.text(
-            "ALTER TABLE listings ADD COLUMN IF NOT EXISTS venda_imediata BOOLEAN DEFAULT FALSE NOT NULL"
-        ))
-        db.session.execute(db.text(
-            "ALTER TABLE transactions ALTER COLUMN proposal_id DROP NOT NULL"
-        ))
-        db.session.execute(db.text(
-            "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS listing_id INTEGER REFERENCES listings(id)"
-        ))
+        stmts = [
+            # venda imediata (rodado antes — idempotente)
+            "ALTER TABLE listings ADD COLUMN IF NOT EXISTS venda_imediata BOOLEAN DEFAULT FALSE NOT NULL",
+            "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS listing_id INTEGER REFERENCES listings(id)",
+            # repasse PIX
+            "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS repasse_status VARCHAR(20) DEFAULT 'pendente'",
+            "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS repasse_transfer_id VARCHAR(64)",
+            "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS repasse_at TIMESTAMP",
+            "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS repasse_obs VARCHAR(300)",
+            # chave PIX do usuário
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS pix_key VARCHAR(150)",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS pix_key_type VARCHAR(20)",
+        ]
+        for s in stmts:
+            db.session.execute(db.text(s))
+        # torna proposal_id nullable (ignora erro se já for)
+        try:
+            db.session.execute(db.text("ALTER TABLE transactions ALTER COLUMN proposal_id DROP NOT NULL"))
+        except Exception:
+            db.session.rollback()
         db.session.commit()
         flash('Migracao executada com sucesso!', 'success')
     except Exception as e:
