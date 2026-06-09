@@ -1141,9 +1141,36 @@ def server_error(e):
     return render_template('errors/500.html'), 500
 
 
-# ─── Init DB ───
-# db.create_all() é executado via init_db.py — não executar aqui para evitar
-# crash no boot se o banco ainda não estiver pronto.
+# ─── Auto-migration on startup ───
+_AUTO_MIGRATE_STMTS = [
+    "ALTER TABLE listings     ADD COLUMN IF NOT EXISTS venda_imediata      BOOLEAN      DEFAULT FALSE NOT NULL",
+    "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS listing_id          INTEGER      REFERENCES listings(id)",
+    "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS repasse_status      VARCHAR(20)  DEFAULT 'pendente'",
+    "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS repasse_transfer_id VARCHAR(64)",
+    "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS repasse_at          TIMESTAMP",
+    "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS repasse_obs         VARCHAR(300)",
+    "ALTER TABLE users        ADD COLUMN IF NOT EXISTS pix_key             VARCHAR(150)",
+    "ALTER TABLE users        ADD COLUMN IF NOT EXISTS pix_key_type        VARCHAR(20)",
+]
+
+def _run_auto_migrations():
+    try:
+        for stmt in _AUTO_MIGRATE_STMTS:
+            db.session.execute(db.text(stmt))
+        try:
+            db.session.execute(db.text(
+                "ALTER TABLE transactions ALTER COLUMN proposal_id DROP NOT NULL"
+            ))
+        except Exception:
+            db.session.rollback()
+        db.session.commit()
+        app.logger.info('Auto-migration: OK')
+    except Exception as e:
+        db.session.rollback()
+        app.logger.warning(f'Auto-migration warning: {e}')
+
+with app.app_context():
+    _run_auto_migrations()
 
 
 if __name__ == '__main__':
