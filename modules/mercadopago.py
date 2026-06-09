@@ -1,7 +1,7 @@
 """
 Integração Mercado Pago — Zanini Scraps Marketplace
-Suporta: PIX (QR Code), Cartão de Crédito, Boleto
-Fluxo MVP: pagamento cai na conta da plataforma, repasse manual ao vendedor.
+Suporta: PIX (QR Code), Boleto, Transferência PIX automática ao vendedor.
+Fluxo: comprador paga → escrow na conta Zanini → confirmação/D+2 → PIX automático ao vendedor.
 """
 import os
 import hmac
@@ -107,6 +107,40 @@ def consultar_pagamento(payment_id):
     )
     resp.raise_for_status()
     return resp.json()
+
+
+def transferir_pix(tx_uid: str, valor: float, pix_key: str, pix_key_type: str, descricao: str):
+    """
+    Envia PIX da conta Zanini para a chave PIX do vendedor.
+    Usa o endpoint /v1/account/bank_transfers do MP.
+    Retorna dict com transfer_id e status, ou lança exceção em falha.
+    """
+    pix_type_map = {
+        'cpf': 'CPF', 'cnpj': 'CNPJ',
+        'email': 'EMAIL', 'telefone': 'PHONE',
+        'aleatoria': 'RANDOM_KEY',
+    }
+    payload = {
+        'amount': float(round(valor, 2)),
+        'currency_id': 'BRL',
+        'description': descricao[:100],
+        'destination': {
+            'pix_key': pix_key,
+            'type': pix_type_map.get(pix_key_type, 'EMAIL'),
+        },
+    }
+    resp = requests.post(
+        f'{MP_BASE_URL}/v1/account/bank_transfers',
+        json=payload,
+        headers=_headers(idempotency_key=f'repasse-{tx_uid}'),
+        timeout=20,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    return {
+        'transfer_id': str(data.get('id', '')),
+        'status': data.get('status', ''),
+    }
 
 
 def verificar_webhook(payload_body: bytes, x_signature: str, x_request_id: str) -> bool:

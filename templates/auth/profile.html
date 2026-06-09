@@ -69,6 +69,35 @@
                     </div>
                 </div>
             </div>
+            <!-- Chave PIX para repasse -->
+            <div class="card" style="margin-bottom:24px; border-left:4px solid var(--success);">
+                <div class="card-header" style="font-weight:700;">Chave PIX para Recebimento</div>
+                <div class="card-body">
+                    <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:16px;">
+                        Necessário para receber o pagamento automaticamente quando uma venda for confirmada.
+                        {% if current_user.pix_key %}
+                        <strong>Chave atual: {{ current_user.pix_key }}</strong>
+                        {% endif %}
+                    </p>
+                    <div class="form-row">
+                        <div class="form-group" style="flex:1;">
+                            <label class="form-label">Tipo de Chave</label>
+                            <select name="pix_key_type" class="form-control">
+                                <option value="email" {{ 'selected' if current_user.pix_key_type == 'email' }}>E-mail</option>
+                                <option value="cpf" {{ 'selected' if current_user.pix_key_type == 'cpf' }}>CPF</option>
+                                <option value="cnpj" {{ 'selected' if current_user.pix_key_type == 'cnpj' }}>CNPJ</option>
+                                <option value="telefone" {{ 'selected' if current_user.pix_key_type == 'telefone' }}>Telefone</option>
+                                <option value="aleatoria" {{ 'selected' if current_user.pix_key_type == 'aleatoria' }}>Chave Aleatória</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex:3;">
+                            <label class="form-label">Chave PIX</label>
+                            <input type="text" name="pix_key" class="form-control" value="{{ current_user.pix_key or '' }}" placeholder="Ex: email@empresa.com.br">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <button type="submit" class="btn btn-primary btn-lg">Salvar Alterações</button>
         </form>
     </div>

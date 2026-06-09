@@ -110,6 +110,43 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
 
+def executar_repasse(tx):
+    """
+    Tenta enviar PIX ao vendedor via MP.
+    Atualiza tx.repasse_status: 'enviado', 'falhou' ou 'manual'.
+    Não faz commit — chame db.session.commit() após.
+    """
+    seller = User.query.get(tx.seller_id)
+    if not seller or not seller.pix_key:
+        tx.repasse_status = 'manual'
+        tx.repasse_obs = 'Vendedor sem chave PIX cadastrada. Transferir manualmente.'
+        return
+
+    mp_enabled = bool(app.config.get('MP_ACCESS_TOKEN'))
+    if not mp_enabled:
+        tx.repasse_status = 'manual'
+        tx.repasse_obs = 'MP sem credenciais — ambiente de teste.'
+        return
+
+    try:
+        result = mp.transferir_pix(
+            tx_uid=tx.uid,
+            valor=tx.net_amount,
+            pix_key=seller.pix_key,
+            pix_key_type=seller.pix_key_type or 'email',
+            descricao=f'Zanini Scraps — repasse tx {tx.uid[:8]}',
+        )
+        tx.repasse_status = 'enviado'
+        tx.repasse_transfer_id = result.get('transfer_id', '')
+        tx.repasse_at = datetime.utcnow()
+        tx.repasse_obs = f"PIX enviado. ID: {result.get('transfer_id')} Status: {result.get('status')}"
+        app.logger.info(f'Repasse tx {tx.uid}: PIX enviado para {seller.pix_key}')
+    except Exception as e:
+        tx.repasse_status = 'falhou'
+        tx.repasse_obs = f'Erro MP: {str(e)[:250]}'
+        app.logger.error(f'Repasse tx {tx.uid} falhou: {e}')
+
+
 # ─── Context Processors ───
 @app.context_processor
 def inject_globals():
@@ -736,8 +773,16 @@ def confirm_delivery(uid):
         if listing:
             listing.status = 'sold'
 
+    executar_repasse(tx)
     db.session.commit()
-    flash(f'Entrega confirmada! { brl(tx.net_amount) } liberado para o vendedor.', 'success')
+
+    if tx.repasse_status == 'enviado':
+        flash(f'Entrega confirmada! PIX de { brl(tx.net_amount) } enviado ao vendedor.', 'success')
+    elif tx.repasse_status == 'manual':
+        flash(f'Entrega confirmada! Repasse de { brl(tx.net_amount) } pendente (vendedor sem PIX cadastrado).', 'warning')
+    else:
+        flash(f'Entrega confirmada! Repasse de { brl(tx.net_amount) } falhou — verificar painel admin.', 'danger')
+
     return redirect(url_for('transaction_detail', uid=uid))
 
 
@@ -770,6 +815,10 @@ def profile():
         current_user.street = request.form.get('street', current_user.street)
         current_user.number = request.form.get('number', current_user.number)
         current_user.neighborhood = request.form.get('neighborhood', current_user.neighborhood)
+        pix_key = request.form.get('pix_key', '').strip()
+        if pix_key:
+            current_user.pix_key = pix_key
+            current_user.pix_key_type = request.form.get('pix_key_type', 'email')
 
         avatar = request.files.get('avatar')
         if avatar and allowed_file(avatar.filename):
@@ -990,6 +1039,58 @@ def buy_now(uid):
     flash('Lote reservado! Realize o pagamento para confirmar.', 'success')
     return redirect(url_for('transaction_detail', uid=tx.uid))
 
+
+
+# ─── AUTO-RELEASE D+2 ───
+@app.route('/cron/release-escrow')
+def cron_release_escrow():
+    """
+    Libera automaticamente transações em escrow vencidas (D+2).
+    Chamar via Railway Cron: GET /cron/release-escrow (a cada hora).
+    Protegido por token simples no header ou query string.
+    """
+    token = request.args.get('token') or request.headers.get('X-Cron-Token', '')
+    cron_secret = app.config.get('SECRET_KEY', '')[:16]
+    if token != cron_secret:
+        abort(403)
+
+    now = datetime.utcnow()
+    vencidas = Transaction.query.filter(
+        Transaction.payment_status == 'escrow',
+        Transaction.escrow_release_date <= now,
+    ).all()
+
+    liberadas = 0
+    for tx in vencidas:
+        tx.payment_status = 'released'
+        tx.delivery_date = now
+
+        proposal = Proposal.query.get(tx.proposal_id) if tx.proposal_id else None
+        _lid = proposal.listing_id if proposal else tx.listing_id
+        if _lid:
+            listing = Listing.query.get(_lid)
+            if listing:
+                listing.status = 'sold'
+
+        executar_repasse(tx)
+
+        db.session.add(Notification(
+            user_id=tx.buyer_id, type='transaction',
+            title='Transação finalizada automaticamente (D+2)',
+            content=f'O prazo de confirmação expirou. Transação encerrada.',
+            link=url_for('transaction_detail', uid=tx.uid)
+        ))
+        db.session.add(Notification(
+            user_id=tx.seller_id, type='payment',
+            title='Repasse liberado (D+2)',
+            content=f'Pagamento de { brl(tx.net_amount) } liberado automaticamente. Status: {tx.repasse_status}.',
+            link=url_for('transaction_detail', uid=tx.uid)
+        ))
+        liberadas += 1
+
+    db.session.commit()
+    app.logger.info(f'Cron D+2: {liberadas} transações liberadas.')
+    return jsonify({'liberadas': liberadas, 'timestamp': now.isoformat()}), 200
 
 
 # ─── MIGRATION (admin, executar 1x) ───

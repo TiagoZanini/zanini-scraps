@@ -43,6 +43,10 @@ class User(UserMixin, db.Model):
     plan = db.Column(db.String(20), default='free')  # free, pro, enterprise
     plan_expires = db.Column(db.DateTime)
 
+    # Recebimento
+    pix_key      = db.Column(db.String(150))   # chave PIX para repasse automático
+    pix_key_type = db.Column(db.String(20))    # cpf, cnpj, email, telefone, aleatoria
+
     # Relationships
     listings = db.relationship('Listing', backref='seller', lazy='dynamic', foreign_keys='Listing.seller_id')
     proposals_sent = db.relationship('Proposal', backref='buyer', lazy='dynamic', foreign_keys='Proposal.buyer_id')
@@ -227,6 +231,12 @@ class Transaction(db.Model):
     logistics_status = db.Column(db.String(20), default='pending')  # pending, scheduled, in_transit, delivered, confirmed
     pickup_date = db.Column(db.DateTime)
     delivery_date = db.Column(db.DateTime)
+
+    # Repasse ao vendedor
+    repasse_status     = db.Column(db.String(20), default='pendente')  # pendente, enviado, falhou, manual
+    repasse_transfer_id = db.Column(db.String(64))
+    repasse_at         = db.Column(db.DateTime)
+    repasse_obs        = db.Column(db.String(300))
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
