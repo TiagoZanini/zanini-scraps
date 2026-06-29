@@ -14,15 +14,23 @@ from flask_login import (LoginManager, login_user, logout_user,
 from flask_mail import Mail, Message as MailMessage
 from werkzeug.utils import secure_filename
 
+from flask_jwt_extended import JWTManager
+from flask_cors import CORS
+
 from config import Config
 from modules.models import (db, User, Category, Listing, ListingImage,
                             Proposal, Message, Transaction, Favorite, Notification)
 from modules import mercadopago as mp
+from modules.api import api as api_blueprint
 
 app = Flask(__name__)
 app.config.from_object(Config)
+app.config['JWT_SECRET_KEY'] = app.config['SECRET_KEY']
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=30)
 
 mail = Mail(app)
+jwt = JWTManager(app)
+CORS(app, resources={r'/api/*': {'origins': '*'}})
 
 # ── Filtro Jinja: formato BRL (R$ 1.234,56) ──
 def _brl(value):
@@ -84,6 +92,7 @@ os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'avatars'), exist_ok=True)
 os.makedirs(os.path.join(os.path.dirname(__file__), 'data'), exist_ok=True)
 
 db.init_app(app)
+app.register_blueprint(api_blueprint)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
