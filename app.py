@@ -557,7 +557,14 @@ def proposal_detail(uid):
 @login_required
 def proposal_accept(uid):
     proposal = Proposal.query.filter_by(uid=uid, seller_id=current_user.id, status='pending').first_or_404()
+    if proposal.listing.status != 'active':
+        flash('Este lote não está mais disponível.', 'danger')
+        return redirect(url_for('proposal_detail', uid=uid))
     proposal.status = 'accepted'
+    proposal.listing.status = 'reserved'
+    Proposal.query.filter(Proposal.listing_id == proposal.listing_id,
+                          Proposal.id != proposal.id,
+                          Proposal.status == 'pending').update({'status': 'rejected'})
 
     commission = proposal.amount * app.config['COMMISSION_RATE']
     tx = Transaction(
@@ -619,8 +626,15 @@ def proposal_counter(uid):
 @login_required
 def proposal_accept_counter(uid):
     proposal = Proposal.query.filter_by(uid=uid, buyer_id=current_user.id, status='countered').first_or_404()
+    if proposal.listing.status != 'active':
+        flash('Este lote não está mais disponível.', 'danger')
+        return redirect(url_for('proposal_detail', uid=uid))
     proposal.status = 'accepted'
     proposal.amount = proposal.counter_amount
+    proposal.listing.status = 'reserved'
+    Proposal.query.filter(Proposal.listing_id == proposal.listing_id,
+                          Proposal.id != proposal.id,
+                          Proposal.status == 'pending').update({'status': 'rejected'})
 
     commission = proposal.amount * app.config['COMMISSION_RATE']
     tx = Transaction(
@@ -872,6 +886,11 @@ def mp_webhook():
 
     if topic not in ('payment', 'merchant_order') or not resource_id:
         return jsonify({'status': 'ignored'}), 200
+
+    if not mp.verificar_webhook(resource_id,
+                                request.headers.get('x-signature', ''),
+                                request.headers.get('x-request-id', '')):
+        return jsonify({'status': 'assinatura invalida'}), 401
 
     try:
         pagamento = mp.consultar_pagamento(resource_id)
@@ -1182,6 +1201,17 @@ def _run_auto_migrations():
                 db.session.add(Category(name=name, slug=slug, icon=icon))
             db.session.commit()
             app.logger.info('Seed: categorias criadas.')
+        else:
+            # corrige nomes sem acento gravados em deploy anterior
+            changed = False
+            for name, slug, _icon in _DEFAULT_CATEGORIES:
+                cat = Category.query.filter_by(slug=slug).first()
+                if cat and cat.name != name:
+                    cat.name = name
+                    changed = True
+            if changed:
+                db.session.commit()
+                app.logger.info('Seed: nomes de categorias corrigidos.')
     except Exception as e:
         db.session.rollback()
         app.logger.warning(f'Seed categorias warning: {e}')

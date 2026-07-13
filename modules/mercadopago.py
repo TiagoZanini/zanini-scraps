@@ -143,14 +143,20 @@ def transferir_pix(tx_uid: str, valor: float, pix_key: str, pix_key_type: str, d
     }
 
 
-def verificar_webhook(payload_body: bytes, x_signature: str, x_request_id: str) -> bool:
+def verificar_webhook(data_id: str, x_signature: str, x_request_id: str) -> bool:
     """
     Verifica assinatura do webhook MP para evitar fraudes.
+    x-signature vem no formato "ts=<timestamp>,v1=<hash>".
     https://www.mercadopago.com.br/developers/pt/docs/your-integrations/notifications/webhooks
     """
     secret = os.environ.get('MP_WEBHOOK_SECRET', '')
     if not secret:
-        return True  # em dev sem secret configurado, aceita tudo
-    manifest = f'id:{x_request_id};request-id:{x_request_id};ts:{x_request_id};'
+        return True  # sem secret configurado, aceita (handler reconsulta o MP de qualquer forma)
+    try:
+        parts = dict(p.strip().split('=', 1) for p in x_signature.split(','))
+        ts, v1 = parts['ts'], parts['v1']
+    except (ValueError, KeyError, AttributeError):
+        return False
+    manifest = f'id:{str(data_id).lower()};request-id:{x_request_id};ts:{ts};'
     expected = hmac.new(secret.encode(), manifest.encode(), hashlib.sha256).hexdigest()
-    return hmac.compare_digest(expected, x_signature.split('=')[-1])
+    return hmac.compare_digest(expected, v1)

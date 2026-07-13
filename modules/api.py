@@ -335,7 +335,13 @@ def api_proposals():
 def api_proposal_accept(uid):
     user = User.query.get(int(get_jwt_identity()))
     proposal = Proposal.query.filter_by(uid=uid, seller_id=user.id, status='pending').first_or_404()
+    if proposal.listing.status != 'active':
+        return jsonify({'error': 'Este lote não está mais disponível.'}), 400
     proposal.status = 'accepted'
+    proposal.listing.status = 'reserved'
+    Proposal.query.filter(Proposal.listing_id == proposal.listing_id,
+                          Proposal.id != proposal.id,
+                          Proposal.status == 'pending').update({'status': 'rejected'})
     commission = proposal.amount * current_app.config['COMMISSION_RATE']
     tx = Transaction(
         proposal_id=proposal.id,
@@ -453,6 +459,8 @@ def api_transaction_pay(uid):
         tx.payment_method = 'pix'
         tx.mp_qr_code = 'SIMULADO-QR-CODE'
         tx.mp_qr_base64 = ''
+        if listing:
+            listing.status = 'reserved'
         db.session.commit()
         return jsonify({'transaction': _tx_dict(tx), 'test_mode': True})
 

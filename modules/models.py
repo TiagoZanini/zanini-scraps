@@ -64,11 +64,11 @@ class User(UserMixin, db.Model):
 
     @property
     def is_seller(self):
-        return self.role in ('fornecedor', 'admin')
+        return self.role in ('fornecedor', 'admin', 'usuario')
 
     @property
     def is_buyer(self):
-        return self.role in ('comprador', 'admin')
+        return self.role in ('comprador', 'admin', 'usuario')
 
     @property
     def is_admin(self):
