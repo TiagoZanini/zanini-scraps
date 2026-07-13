@@ -1162,7 +1162,29 @@ _AUTO_MIGRATE_STMTS = [
     "ALTER TABLE users        ADD COLUMN IF NOT EXISTS pix_key_type        VARCHAR(20)",
 ]
 
+_DEFAULT_CATEGORIES = [
+    ('Metais Ferrosos', 'metais-ferrosos', '🔩'),
+    ('Metais Não-Ferrosos', 'metais-nao-ferrosos', '🥇'),
+    ('Plásticos', 'plasticos', '♳'),
+    ('Madeira', 'madeira', '🪵'),
+    ('Construção Civil', 'construcao-civil', '🧱'),
+    ('Eletrônicos', 'eletronicos', '💡'),
+    ('Têxteis', 'texteis', '🧵'),
+    ('Químicos', 'quimicos', '🧪'),
+    ('Outros', 'outros', '📦'),
+]
+
 def _run_auto_migrations():
+    try:
+        db.create_all()
+        if not Category.query.first():
+            for name, slug, icon in _DEFAULT_CATEGORIES:
+                db.session.add(Category(name=name, slug=slug, icon=icon))
+            db.session.commit()
+            app.logger.info('Seed: categorias criadas.')
+    except Exception as e:
+        db.session.rollback()
+        app.logger.warning(f'Seed categorias warning: {e}')
     try:
         for stmt in _AUTO_MIGRATE_STMTS:
             db.session.execute(db.text(stmt))
