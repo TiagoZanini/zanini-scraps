@@ -23,7 +23,7 @@
                 {% for tx in transactions %}
                 <tr style="border-bottom:1px solid var(--border);">
                     <td style="color:var(--text-primary);padding:1rem .75rem;">
-                        {{ tx.proposal.listing.title[:30] }}{% if tx.proposal.listing.title|length > 30 %}...{% endif %}
+                        {{ tx.display_title[:30] }}{% if tx.display_title|length > 30 %}...{% endif %}
                     </td>
                     <td style="color:var(--text-secondary);padding:1rem .75rem;font-size:.85rem;">
                         {% if current_user.id == tx.buyer.id %}Você (comprador){% else %}Você (vendedor){% endif %}

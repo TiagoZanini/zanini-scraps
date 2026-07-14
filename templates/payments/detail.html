@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Pagamento — {{ tx.proposal.listing.title }}{% endblock %}
+{% block title %}Pagamento — {{ tx.display_title }}{% endblock %}
 {% block content %}
 <div class="page-content">
   <div class="grid grid-3" style="gap:2rem;">
@@ -196,14 +196,16 @@
       <div class="card">
         <div class="card-body">
           <h6 style="color:var(--text-muted);text-transform:uppercase;font-size:.8rem;margin-bottom:1rem;">📦 Anúncio</h6>
-          <h5 style="color:var(--text-primary);margin-bottom:1rem;">{{ tx.proposal.listing.title }}</h5>
+          <h5 style="color:var(--text-primary);margin-bottom:1rem;">{{ tx.display_title }}</h5>
           <div class="mb-3">
-            <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:.3rem;">Valor da Proposta</p>
-            <p style="color:var(--accent);margin:0;font-weight:600;">{{ tx.proposal.amount|brl }}</p>
+            <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:.3rem;">{% if tx.proposal %}Valor da Proposta{% else %}Valor da Compra{% endif %}</p>
+            <p style="color:var(--accent);margin:0;font-weight:600;">{{ tx.gross_amount|brl }}</p>
           </div>
-          <a href="{{ url_for('listing_detail', uid=tx.proposal.listing.uid) }}" style="display:block;border:1px solid var(--border);color:var(--text-primary);text-align:center;text-decoration:none;padding:.5rem 1rem;border-radius:4px;">
+          {% if tx.listing_ref %}
+          <a href="{{ url_for('listing_detail', uid=tx.listing_ref.uid) }}" style="display:block;border:1px solid var(--border);color:var(--text-primary);text-align:center;text-decoration:none;padding:.5rem 1rem;border-radius:4px;">
             👁️ Ver Anúncio
           </a>
+          {% endif %}
         </div>
       </div>
 

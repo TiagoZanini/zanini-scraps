@@ -244,6 +244,19 @@ class Transaction(db.Model):
     buyer = db.relationship('User', foreign_keys=[buyer_id])
     seller = db.relationship('User', foreign_keys=[seller_id])
     proposal = db.relationship('Proposal', foreign_keys=[proposal_id], backref='transaction_ref')
+    direct_listing = db.relationship('Listing', foreign_keys=[listing_id])
+
+    @property
+    def listing_ref(self):
+        """Listing da transação — via proposta ou venda imediata."""
+        if self.proposal:
+            return self.proposal.listing
+        return self.direct_listing
+
+    @property
+    def display_title(self):
+        listing = self.listing_ref
+        return listing.title if listing else 'Lote removido'
 
 
 class Favorite(db.Model):

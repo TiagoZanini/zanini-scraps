@@ -129,7 +129,7 @@
                                 <tr style="border-bottom: 1px solid var(--border);">
                                     <td style="color: var(--text-primary); padding: 1rem 0.75rem;">
                                         <a href="{{ url_for('transaction_detail', uid=tx.uid) }}" style="color: var(--accent); text-decoration: none;">
-                                            {{ tx.proposal.listing.title[:30] }}{% if tx.proposal.listing.title|length > 30 %}...{% endif %}
+                                            {{ tx.display_title[:30] }}{% if tx.display_title|length > 30 %}...{% endif %}
                                         </a>
                                     </td>
                                     <td style="color: var(--accent); font-weight: 600; padding: 1rem 0.75rem; text-align: right; white-space: nowrap;">
