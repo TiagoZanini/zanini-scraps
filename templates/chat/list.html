@@ -6,37 +6,26 @@
 <div class="page-content">
     <h1 class="page-title" style="margin-bottom: 2rem;">💬 Conversas</h1>
 
-    {% if conversations %}
-        {% for conversation in conversations %}
-            <a href="{{ url_for('proposal_detail', uid=conversation.uid) }}" style="text-decoration: none;">
+    {% if threads %}
+        {% for t in threads %}
+            <a href="{{ url_for('chat_thread', listing_uid=t.listing.uid, user_uid=t.other.uid) }}" style="text-decoration: none;">
                 <div class="card" style="margin-bottom: 1rem; cursor: pointer;">
                     <div class="card-body">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                             <div style="flex: 1;">
-                                <h5 style="color: var(--text-primary); margin: 0 0 0.5rem 0;">
-                                    {{ conversation.listing.title[:50] }}{% if conversation.listing.title|length > 50 %}...{% endif %}
+                                <h5 style="color: var(--text-primary); margin: 0 0 0.3rem 0;">
+                                    {{ t.other.name }}
+                                    {% if t.unread %}<span class="badge-status badge-new" style="margin-left:.5rem;">{{ t.unread }} nova{% if t.unread > 1 %}s{% endif %}</span>{% endif %}
                                 </h5>
-                                <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">
-                                    {% if current_user.id == conversation.seller_user.id %}
-                                        Com <strong>{{ conversation.buyer.name }}</strong> (comprador)
-                                    {% else %}
-                                        Com <strong>{{ conversation.seller_user.name }}</strong> (vendedor)
-                                    {% endif %}
+                                <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0 0 0.4rem;">
+                                    {{ t.listing.title[:50] }}{% if t.listing.title|length > 50 %}...{% endif %} &bull; {{ t.listing.price|brl }}
+                                </p>
+                                <p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0;">
+                                    {% if t.last.sender_id == current_user.id %}Você: {% endif %}{{ t.last.content[:60] }}{% if t.last.content|length > 60 %}...{% endif %}
                                 </p>
                             </div>
-
                             <div style="text-align: right; margin-left: 1rem;">
-                                <div style="margin-bottom: 0.5rem;">
-                                    <span class="badge-status badge-{{ conversation.status|lower }}">
-                                        {{ conversation.status|upper }}
-                                    </span>
-                                    <span style="color: var(--text-muted); font-size: 0.85rem; margin-left: 0.5rem;">
-                                        {{ conversation.amount|brl }}
-                                    </span>
-                                </div>
-                                <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">
-                                    {{ conversation.last_message_at.strftime('%d/%m/%Y') if conversation.last_message_at else conversation.created_at.strftime('%d/%m/%Y') }}
-                                </p>
+                                <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">{{ t.last.created_at|brdt('%d/%m %H:%M') }}</p>
                             </div>
                         </div>
                     </div>
@@ -46,7 +35,7 @@
     {% else %}
         <div class="empty-state" style="padding: 4rem 2rem; text-align: center;">
             <div style="font-size: 3rem; margin-bottom: 1rem;">💬</div>
-            <p style="color: var(--text-muted);">Nenhuma conversa ainda. Navegue pelos anúncios para começar a negociar.</p>
+            <p style="color: var(--text-muted);">Nenhuma conversa ainda. Abra um anúncio e clique em "Conversar com o vendedor".</p>
         </div>
     {% endif %}
 </div>

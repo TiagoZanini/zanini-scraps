@@ -54,6 +54,31 @@ def _brdt(dt, fmt='%d/%m/%Y às %H:%M'):
 
 app.jinja_env.filters['brdt'] = _brdt
 
+# ── Status em português ──
+_STATUS_PT = {
+    # listing
+    'draft': 'Rascunho', 'active': 'Ativo', 'reserved': 'Reservado',
+    'sold': 'Vendido', 'expired': 'Expirado',
+    # proposta
+    'pending': 'Pendente', 'accepted': 'Aceita', 'rejected': 'Recusada',
+    'countered': 'Contraproposta', 'expired_proposal': 'Expirada',
+    # pagamento
+    'awaiting_payment': 'Aguardando pagamento', 'escrow': 'Pago — em custódia',
+    'released': 'Concluída', 'refunded': 'Reembolsada', 'disputed': 'Em disputa',
+    # logística
+    'scheduled': 'Agendado', 'in_transit': 'Em trânsito',
+    'delivered': 'Entregue', 'confirmed': 'Entrega confirmada',
+    # repasse
+    'pendente': 'Pendente', 'enviado': 'Enviado', 'falhou': 'Repasse manual', 'manual': 'Repasse manual',
+}
+
+def _status_pt(value):
+    if not value:
+        return '—'
+    return _STATUS_PT.get(str(value).lower(), str(value).capitalize())
+
+app.jinja_env.filters['status_pt'] = _status_pt
+
 # ── Helper para strings Python (flash/notificações) ──
 def brl(value):
     return _brl(value)
@@ -692,6 +717,7 @@ def chat_send(uid):
         sender_id=current_user.id,
         receiver_id=receiver_id,
         proposal_id=proposal.id,
+        listing_id=proposal.listing_id,
         content=content
     )
     db.session.add(msg)
@@ -699,13 +725,74 @@ def chat_send(uid):
     return redirect(url_for('proposal_detail', uid=uid))
 
 
+# ─── CHAT POR ANÚNCIO (estilo OLX) ───
+@app.route('/chat/l/<listing_uid>')
+@app.route('/chat/l/<listing_uid>/<user_uid>')
+@login_required
+def chat_thread(listing_uid, user_uid=None):
+    listing = Listing.query.filter_by(uid=listing_uid).first_or_404()
+    if user_uid:
+        other = User.query.filter_by(uid=user_uid).first_or_404()
+    elif current_user.id != listing.seller_id:
+        other = listing.seller          # comprador abrindo chat com o vendedor
+    else:
+        return redirect(url_for('messages_list'))
+
+    if current_user.id != listing.seller_id and other.id != listing.seller_id:
+        abort(403)
+    if other.id == current_user.id:
+        return redirect(url_for('messages_list'))
+
+    msgs = Message.query.filter(
+        Message.listing_id == listing.id,
+        ((Message.sender_id == current_user.id) & (Message.receiver_id == other.id)) |
+        ((Message.sender_id == other.id) & (Message.receiver_id == current_user.id))
+    ).order_by(Message.created_at.asc()).all()
+
+    Message.query.filter_by(listing_id=listing.id, receiver_id=current_user.id,
+                            sender_id=other.id, is_read=False).update({'is_read': True})
+    db.session.commit()
+    return render_template('chat/thread.html', listing=listing, other=other, messages=msgs)
+
+
+@app.route('/chat/l/<listing_uid>/<user_uid>/send', methods=['POST'])
+@login_required
+def chat_thread_send(listing_uid, user_uid):
+    listing = Listing.query.filter_by(uid=listing_uid).first_or_404()
+    other = User.query.filter_by(uid=user_uid).first_or_404()
+    if current_user.id != listing.seller_id and other.id != listing.seller_id:
+        abort(403)
+    content = request.form.get('content', '').strip()
+    if content:
+        db.session.add(Message(
+            sender_id=current_user.id, receiver_id=other.id,
+            listing_id=listing.id, content=content
+        ))
+        db.session.commit()
+    return redirect(url_for('chat_thread', listing_uid=listing_uid, user_uid=user_uid))
+
+
 @app.route('/messages')
 @login_required
 def messages_list():
-    conversations = db.session.query(Proposal).filter(
-        (Proposal.buyer_id == current_user.id) | (Proposal.seller_id == current_user.id)
-    ).order_by(Proposal.updated_at.desc()).all()
-    return render_template('chat/list.html', conversations=conversations)
+    my_msgs = Message.query.filter(
+        Message.listing_id.isnot(None),
+        (Message.sender_id == current_user.id) | (Message.receiver_id == current_user.id)
+    ).order_by(Message.created_at.desc()).all()
+
+    threads, seen = [], set()
+    for m in my_msgs:
+        other_id = m.receiver_id if m.sender_id == current_user.id else m.sender_id
+        key = (m.listing_id, other_id)
+        if key in seen:
+            continue
+        seen.add(key)
+        unread = Message.query.filter_by(listing_id=m.listing_id, sender_id=other_id,
+                                         receiver_id=current_user.id, is_read=False).count()
+        threads.append({'listing': m.listing,
+                        'other': m.sender if m.sender_id != current_user.id else m.receiver,
+                        'last': m, 'unread': unread})
+    return render_template('chat/list.html', threads=threads)
 
 
 # ─── TRANSACTIONS / PAYMENTS ───
@@ -1190,6 +1277,7 @@ _AUTO_MIGRATE_STMTS = [
     "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS repasse_obs         VARCHAR(300)",
     "ALTER TABLE users        ADD COLUMN IF NOT EXISTS pix_key             VARCHAR(150)",
     "ALTER TABLE users        ADD COLUMN IF NOT EXISTS pix_key_type        VARCHAR(20)",
+    "ALTER TABLE messages     ADD COLUMN IF NOT EXISTS listing_id          INTEGER      REFERENCES listings(id)",
 ]
 
 _DEFAULT_CATEGORIES = [

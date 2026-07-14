@@ -194,12 +194,14 @@ class Message(db.Model):
     sender_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     receiver_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     proposal_id = db.Column(db.Integer, db.ForeignKey('proposals.id'), nullable=True)
+    listing_id = db.Column(db.Integer, db.ForeignKey('listings.id'), nullable=True, index=True)
     content = db.Column(db.Text, nullable=False)
     is_read = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
 
     sender = db.relationship('User', foreign_keys=[sender_id], backref='messages_sent')
     receiver = db.relationship('User', foreign_keys=[receiver_id], backref='messages_received')
+    listing = db.relationship('Listing', foreign_keys=[listing_id])
 
 
 class Transaction(db.Model):

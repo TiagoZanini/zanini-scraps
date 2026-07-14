@@ -53,7 +53,7 @@
                                 <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
                                     <span style="color: var(--accent); font-weight: 600;">{{ listing.price|brl }}</span>
                                     <span class="badge-status {% if listing.status == 'sold' %}badge-sold{% elif listing.status == 'draft' %}badge-draft{% else %}badge-active{% endif %}">
-                                        {{ listing.status|upper }}
+                                        {{ listing.status|status_pt }}
                                     </span>
                                 </div>
                             </div>
@@ -88,7 +88,7 @@
                                 <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
                                     <span style="color: var(--accent); font-weight: 600;">{{ proposal.amount|brl }}</span>
                                     <span class="badge-status badge-{{ proposal.status|lower }}">
-                                        {{ proposal.status|upper }}
+                                        {{ proposal.status|status_pt }}
                                     </span>
                                 </div>
                             </div>
@@ -137,7 +137,7 @@
                                     </td>
                                     <td style="padding: 1rem 0.75rem;">
                                         <span class="badge-status {% if tx.payment_status == 'completed' %}badge-completed{% else %}badge-pending{% endif %}">
-                                            {{ tx.payment_status|upper }}
+                                            {{ tx.payment_status|status_pt }}
                                         </span>
                                     </td>
                                 </tr>

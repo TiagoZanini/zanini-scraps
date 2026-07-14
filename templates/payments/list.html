@@ -14,8 +14,7 @@
                     <th style="color:var(--text-muted);background:var(--bg-secondary);border:none;text-align:right;padding:.75rem;white-space:nowrap;">Valor Bruto</th>
                     <th style="color:var(--text-muted);background:var(--bg-secondary);border:none;text-align:right;padding:.75rem;white-space:nowrap;">Comissão</th>
                     <th style="color:var(--text-muted);background:var(--bg-secondary);border:none;text-align:right;padding:.75rem;white-space:nowrap;">Valor Líquido</th>
-                    <th style="color:var(--text-muted);background:var(--bg-secondary);border:none;text-align:left;padding:.75rem;">Pagamento</th>
-                    <th style="color:var(--text-muted);background:var(--bg-secondary);border:none;text-align:left;padding:.75rem;">Logístico</th>
+                    <th style="color:var(--text-muted);background:var(--bg-secondary);border:none;text-align:left;padding:.75rem;">Situação</th>
                     <th style="color:var(--text-muted);background:var(--bg-secondary);border:none;text-align:center;padding:.75rem;"></th>
                 </tr>
             </thead>
@@ -38,25 +37,31 @@
                         {{ tx.net_amount|brl }}
                     </td>
                     <td style="padding:1rem .75rem;">
-                        <span class="badge-status {% if tx.payment_status == 'released' %}badge-completed{% elif tx.payment_status in ['escrow','awaiting_payment','pending'] %}badge-pending{% else %}badge-failed{% endif %}">
-                            {% if tx.payment_status == 'pending' %}Pendente
-                            {% elif tx.payment_status == 'awaiting_payment' %}Aguardando
-                            {% elif tx.payment_status == 'escrow' %}Em Custódia
-                            {% elif tx.payment_status == 'released' %}Liberado
-                            {% else %}{{ tx.payment_status }}{% endif %}
-                        </span>
+                        {% set is_buyer = current_user.id == tx.buyer_id %}
+                        {% if tx.payment_status in ['pending', 'awaiting_payment'] %}
+                            <span class="badge-status badge-pending">
+                                {% if is_buyer %}Aguardando seu pagamento{% else %}Aguardando pagamento do comprador{% endif %}
+                            </span>
+                        {% elif tx.payment_status == 'escrow' %}
+                            <span class="badge-status badge-pending" style="background:#e0f2fe;color:#075985;">
+                                {% if is_buyer %}Pago — confirme quando receber{% else %}Pago — combine a entrega{% endif %}
+                            </span>
+                        {% elif tx.payment_status == 'released' %}
+                            <span class="badge-status badge-completed">
+                                {% if is_buyer %}Concluída{% else %}Concluída — valor a receber{% endif %}
+                            </span>
+                        {% else %}
+                            <span class="badge-status badge-failed">{{ tx.payment_status|status_pt }}</span>
+                        {% endif %}
                     </td>
-                    <td style="padding:1rem .75rem;">
-                        <span class="badge-status {% if tx.logistics_status == 'confirmed' %}badge-completed{% else %}badge-pending{% endif %}">
-                            {% if tx.logistics_status == 'pending' %}Pendente
-                            {% elif tx.logistics_status == 'scheduled' %}Agendado
-                            {% elif tx.logistics_status == 'in_transit' %}Em Trânsito
-                            {% elif tx.logistics_status == 'confirmed' %}Entregue
-                            {% else %}{{ tx.logistics_status }}{% endif %}
-                        </span>
-                    </td>
-                    <td style="padding:1rem .75rem;text-align:center;">
-                        <a href="{{ url_for('transaction_detail', uid=tx.uid) }}" style="color:var(--accent);text-decoration:none;">→</a>
+                    <td style="padding:1rem .75rem;text-align:center;white-space:nowrap;">
+                        {% if is_buyer and tx.payment_status in ['pending', 'awaiting_payment'] %}
+                            <a href="{{ url_for('transaction_detail', uid=tx.uid) }}" class="btn btn-primary" style="padding:.35rem .8rem;font-size:.85rem;text-decoration:none;">Pagar</a>
+                        {% elif is_buyer and tx.payment_status == 'escrow' %}
+                            <a href="{{ url_for('transaction_detail', uid=tx.uid) }}" class="btn btn-primary" style="padding:.35rem .8rem;font-size:.85rem;text-decoration:none;">Confirmar recebimento</a>
+                        {% else %}
+                            <a href="{{ url_for('transaction_detail', uid=tx.uid) }}" style="color:var(--accent);text-decoration:none;">Detalhes →</a>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}

@@ -31,7 +31,7 @@
                                     {{ proposal.listing.title[:40] }}{% if proposal.listing.title|length > 40 %}...{% endif %}
                                 </h5>
                                 <span class="badge-status badge-{{ proposal.status|lower }}" style="white-space: nowrap; margin-left: 0.5rem;">
-                                    {{ proposal.status|upper }}
+                                    {{ proposal.status|status_pt }}
                                 </span>
                             </div>
 

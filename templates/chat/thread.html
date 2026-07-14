@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Chat — {{ listing.title }}{% endblock %}
+{% block content %}
+<div class="page-content" style="max-width:760px;margin:0 auto;">
+    <div style="margin-bottom:1.5rem;">
+        <a href="{{ url_for('messages_list') }}" style="color:var(--text-muted);text-decoration:none;font-size:.9rem;">← Conversas</a>
+        <h1 class="page-title" style="margin:.5rem 0 .3rem;">💬 {{ other.name }}</h1>
+        <p style="color:var(--text-muted);margin:0;">
+            Sobre: <a href="{{ url_for('listing_detail', uid=listing.uid) }}" style="color:var(--accent);text-decoration:none;">{{ listing.title }}</a>
+            &bull; {{ listing.price|brl }} &bull; <span class="badge-status badge-{{ listing.status }}">{{ listing.status|status_pt }}</span>
+        </p>
+    </div>
+
+    <div class="card" style="margin-bottom:1rem;">
+        <div class="card-body" style="max-height:420px;overflow-y:auto;" id="chat-box">
+            {% if messages %}
+                {% for m in messages %}
+                <div style="display:flex;{% if m.sender_id == current_user.id %}justify-content:flex-end;{% endif %}margin-bottom:.75rem;">
+                    <div style="max-width:75%;padding:.6rem .9rem;border-radius:12px;
+                                {% if m.sender_id == current_user.id %}background:var(--accent);color:#fff;{% else %}background:var(--bg-secondary);color:var(--text-primary);{% endif %}">
+                        <div style="white-space:pre-wrap;word-break:break-word;">{{ m.content }}</div>
+                        <div style="font-size:.72rem;opacity:.7;margin-top:.25rem;text-align:right;">{{ m.created_at|brdt('%d/%m %H:%M') }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p style="color:var(--text-muted);text-align:center;padding:2rem 0;">Nenhuma mensagem ainda. Diga olá! 👋</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('chat_thread_send', listing_uid=listing.uid, user_uid=other.uid) }}" style="display:flex;gap:.5rem;">
+        <input type="text" name="content" placeholder="Escreva sua mensagem..." required autofocus
+               style="flex:1;padding:.7rem 1rem;border:1px solid var(--border);border-radius:8px;background:var(--bg-primary);color:var(--text-primary);">
+        <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Enviar</button>
+    </form>
+</div>
+<script>var b=document.getElementById('chat-box'); if(b) b.scrollTop=b.scrollHeight;</script>
+{% endblock %}

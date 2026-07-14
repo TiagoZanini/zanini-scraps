@@ -130,10 +130,10 @@
               {% if tx.payment_status == 'released' %}#28a745
               {% elif tx.payment_status in ['escrow','awaiting_payment'] %}#ffc107
               {% else %}#dc3545{% endif %};">
-              {% if tx.payment_status == 'released' %}✅ Pagamento liberado ao vendedor
-              {% elif tx.payment_status == 'escrow' %}🔒 Valor em custódia (escrow) — aguardando confirmação de entrega
-              {% elif tx.payment_status == 'awaiting_payment' %}⏳ Aguardando pagamento
-              {% else %}{{ tx.payment_status|upper }}{% endif %}
+              {% if tx.payment_status == 'released' %}✅ Concluída — pagamento liberado ao vendedor
+              {% elif tx.payment_status == 'escrow' %}🔒 Pago — o valor fica retido com segurança até o comprador confirmar o recebimento
+              {% elif tx.payment_status == 'awaiting_payment' %}⏳ Aguardando pagamento do comprador
+              {% else %}{{ tx.payment_status|status_pt }}{% endif %}
             </p>
           </div>
           {% if tx.payment_method %}
@@ -204,6 +204,10 @@
           {% if tx.listing_ref %}
           <a href="{{ url_for('listing_detail', uid=tx.listing_ref.uid) }}" style="display:block;border:1px solid var(--border);color:var(--text-primary);text-align:center;text-decoration:none;padding:.5rem 1rem;border-radius:4px;">
             👁️ Ver Anúncio
+          </a>
+          {% set other = tx.seller if current_user.id == tx.buyer_id else tx.buyer %}
+          <a href="{{ url_for('chat_thread', listing_uid=tx.listing_ref.uid, user_uid=other.uid) }}" style="display:block;border:1px solid var(--accent);color:var(--accent);text-align:center;text-decoration:none;padding:.5rem 1rem;border-radius:4px;margin-top:.5rem;">
+            💬 Conversar com {% if current_user.id == tx.buyer_id %}o vendedor{% else %}o comprador{% endif %}
           </a>
           {% endif %}
         </div>
