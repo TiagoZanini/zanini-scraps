@@ -29,7 +29,7 @@
                             <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.3rem;">💰 Oferta Inicial</p>
                             <h3 style="color: var(--accent); margin: 0;">{{ proposal.amount|brl }}</h3>
                             <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 1rem; margin-bottom: 0.3rem;">📅 Data</p>
-                            <p style="color: var(--text-primary); margin: 0;">{{ proposal.created_at.strftime('%d de %B de %Y às %H:%M') }}</p>
+                            <p style="color: var(--text-primary); margin: 0;">{{ proposal.created_at|brdt }}</p>
                         </div>
 
                         {% if proposal.counter_amount %}
@@ -105,7 +105,7 @@
                             <div class="chat-message {% if message.sender_id == current_user.id %}sent{% else %}received{% endif %}">
                                 <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.2rem;">
                                     <strong style="color: var(--text-primary);">{{ message.sender.name }}</strong>
-                                    <span>{{ message.created_at.strftime('%d/%m às %H:%M') }}</span>
+                                    <span>{{ message.created_at|brdt('%d/%m às %H:%M') }}</span>
                                 </div>
                                 <div style="background: var(--bg-secondary); padding: 0.8rem; border-radius: 6px; color: var(--text-primary);">
                                     {{ message.content }}

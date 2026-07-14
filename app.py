@@ -43,6 +43,17 @@ def _brl(value):
 
 app.jinja_env.filters['brl'] = _brl
 
+# ── Filtro de data/hora no fuso do Brasil (UTC-3) ──
+from datetime import timezone as _tz
+_BR_TZ = _tz(timedelta(hours=-3))
+
+def _brdt(dt, fmt='%d/%m/%Y às %H:%M'):
+    if dt is None:
+        return ''
+    return dt.replace(tzinfo=_tz.utc).astimezone(_BR_TZ).strftime(fmt)
+
+app.jinja_env.filters['brdt'] = _brdt
+
 # ── Helper para strings Python (flash/notificações) ──
 def brl(value):
     return _brl(value)

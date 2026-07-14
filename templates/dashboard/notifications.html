@@ -34,7 +34,7 @@
                                 <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem; margin-bottom: 0;">{{ notification.content }}</p>
                             {% endif %}
                             <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.5rem; margin-bottom: 0;">
-                                {{ notification.created_at.strftime('%d/%m/%Y às %H:%M') }}
+                                {{ notification.created_at|brdt }}
                             </p>
                         </div>
 
@@ -44,7 +44,7 @@
                                     NEW
                                 </span>
                             {% endif %}
-                            {% if notification.link %}
+                            {% if notification.link and notification.link != '#' %}
                                 <div style="margin-top: 0.5rem;">
                                     <a href="{{ notification.link }}" style="color: var(--accent); text-decoration: none; font-weight: 600;">
                                         Ver →

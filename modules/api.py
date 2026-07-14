@@ -305,11 +305,12 @@ def api_proposal_create(listing_uid):
             message=data.get('message', ''),
         )
         db.session.add(proposal)
+        db.session.flush()  # garante proposal.uid antes de montar o link
         db.session.add(Notification(
             user_id=listing.seller_id, type='proposal',
             title='Nova proposta recebida!',
             content=f'{user.name} fez uma proposta de R$ {proposal.amount:,.2f} no lote "{listing.title[:40]}".',
-            link='#'
+            link=f'/proposal/{proposal.uid}'
         ))
         db.session.commit()
         return jsonify({'proposal': _proposal_dict(proposal)}), 201
@@ -354,11 +355,12 @@ def api_proposal_accept(uid):
         escrow_release_date=datetime.utcnow() + timedelta(days=current_app.config['ESCROW_RELEASE_DAYS'])
     )
     db.session.add(tx)
+    db.session.flush()  # garante tx.uid antes de montar o link
     db.session.add(Notification(
         user_id=proposal.buyer_id, type='proposal',
         title='Proposta aceita!',
         content=f'Sua proposta foi aceita. Realize o pagamento para confirmar.',
-        link='#'
+        link=f'/transaction/{tx.uid}'
     ))
     db.session.commit()
     return jsonify({'transaction': _tx_dict(tx)})
