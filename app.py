@@ -365,10 +365,9 @@ def marketplace():
     ).distinct().all()
     materials = sorted(set(m[0] for m in materials if m[0]))
 
-    states_list = db.session.query(Listing.state).filter(
-        Listing.status == 'active', Listing.state.isnot(None)
-    ).distinct().all()
-    states_list = sorted(set(s[0] for s in states_list if s[0]))
+    states_list = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS',
+                   'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC',
+                   'SP', 'SE', 'TO']
 
     return render_template('listings/marketplace.html',
                            listings=pagination.items,
@@ -405,6 +404,17 @@ def listing_detail(uid):
 @login_required
 def listing_create():
     if request.method == 'POST':
+        def _num(campo, padrao=0):
+            v = str(request.form.get(campo, padrao) or padrao).strip()
+            if ',' in v:
+                v = v.replace('.', '').replace(',', '.')
+            try:
+                return float(v)
+            except ValueError:
+                return float(padrao)
+
+        status_values = request.form.getlist('status')
+        status_final = 'draft' if 'draft' in status_values else 'active'
         listing = Listing(
             seller_id=current_user.id,
             title=request.form.get('title', '').strip(),
@@ -412,11 +422,11 @@ def listing_create():
             category_id=request.form.get('category_id') or None,
             material_type=request.form.get('material_type', '').strip(),
             condition=request.form.get('condition', 'usado'),
-            quantity=float(request.form.get('quantity', 0)),
+            quantity=_num('quantity'),
             unit=request.form.get('unit', 'kg'),
-            price=float(request.form.get('price', 0)),
+            price=_num('price'),
             price_type=request.form.get('price_type', 'total'),
-            min_order=float(request.form.get('min_order', 0) or 0),
+            min_order=_num('min_order'),
             city=request.form.get('city', current_user.city or ''),
             state=request.form.get('state', current_user.state or ''),
             cep=request.form.get('cep', ''),
@@ -425,9 +435,10 @@ def listing_create():
             has_invoice=bool(request.form.get('has_invoice')),
             availability=request.form.get('availability', ''),
             observations=request.form.get('observations', ''),
-            who_picks_up=request.form.get('who_picks_up', 'comprador'),
+            who_picks_up={'retirada': 'comprador', 'entrega': 'vendedor'}.get(
+                request.form.get('delivery_type', 'retirada'), 'negociavel'),
             venda_imediata=bool(request.form.get('venda_imediata')),
-            status=request.form.get('status', 'active'),
+            status=status_final,
         )
         db.session.add(listing)
         db.session.flush()
@@ -449,7 +460,10 @@ def listing_create():
                 db.session.add(img)
 
         db.session.commit()
-        flash('Anúncio publicado com sucesso!', 'success')
+        if status_final == 'draft':
+            flash('Rascunho salvo. Ele não aparece no marketplace até você publicar.', 'success')
+        else:
+            flash('Anúncio publicado com sucesso!', 'success')
         return redirect(url_for('listing_detail', uid=listing.uid))
 
     return render_template('listings/create.html')
@@ -540,9 +554,14 @@ def proposal_create(uid):
         flash('Você não pode fazer proposta no próprio anúncio.', 'warning')
         return redirect(url_for('listing_detail', uid=uid))
 
-    amount = float(request.form.get('amount', 0))
+    amount = float(str(request.form.get('amount', 0)).replace('.', '').replace(',', '.') if ',' in str(request.form.get('amount', '')) else request.form.get('amount', 0) or 0)
     quantity = float(request.form.get('quantity', listing.quantity) or listing.quantity)
     message = request.form.get('message', '').strip()
+
+    ja_existe = Proposal.query.filter_by(listing_id=listing.id, buyer_id=current_user.id, status='pending').first()
+    if ja_existe:
+        flash('Você já tem uma proposta pendente neste lote. Aguarde a resposta do vendedor.', 'warning')
+        return redirect(url_for('proposal_detail', uid=ja_existe.uid))
 
     proposal = Proposal(
         listing_id=listing.id,
@@ -565,7 +584,7 @@ def proposal_create(uid):
     db.session.add(notif)
     db.session.commit()
 
-    seller = listing.seller_user
+    seller = listing.seller
     send_email(seller.email, 'Nova proposta recebida',
         f'<p>Olá, <strong>{seller.name}</strong>!</p>'
         f'<p><strong>{current_user.name}</strong> fez uma proposta de <strong>{ brl(amount) }</strong> '
@@ -1253,6 +1272,24 @@ def migrate_venda_imediata():
     return redirect(url_for('admin_dashboard'))
 
 
+# ─── Páginas institucionais ───
+@app.route('/ajuda')
+def page_ajuda():
+    return render_template('pages/ajuda.html')
+
+@app.route('/termos')
+def page_termos():
+    return render_template('pages/termos.html')
+
+@app.route('/privacidade')
+def page_privacidade():
+    return render_template('pages/privacidade.html')
+
+@app.route('/contato')
+def page_contato():
+    return render_template('pages/contato.html')
+
+
 # ─── Error handlers ───
 @app.errorhandler(404)
 def not_found(e):
@@ -1311,6 +1348,12 @@ def _run_auto_migrations():
             if changed:
                 db.session.commit()
                 app.logger.info('Seed: nomes de categorias corrigidos.')
+        outros = Category.query.filter_by(slug='outros').first()
+        if outros:
+            sem_cat = Listing.query.filter_by(category_id=None).update({'category_id': outros.id})
+            if sem_cat:
+                db.session.commit()
+                app.logger.info(f'Seed: {sem_cat} anúncios sem categoria movidos para Outros.')
     except Exception as e:
         db.session.rollback()
         app.logger.warning(f'Seed categorias warning: {e}')

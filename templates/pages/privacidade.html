@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Privacidade — {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="page-content" style="max-width:820px;margin:0 auto;">
+    <h1 class="page-title">Política de Privacidade</h1>
+    <p style="color:var(--text-muted);margin-bottom:2rem;">Última atualização: julho de 2026</p>
+
+    <div style="color:var(--text-secondary);line-height:1.8;">
+        <h5 style="color:var(--text-primary);margin:1.5rem 0 .5rem;">Dados que coletamos</h5>
+        <p>Nome, e-mail, telefone, CPF/CNPJ, endereço e chave PIX (para vendedores), além dos dados dos anúncios e transações realizadas na plataforma.</p>
+
+        <h5 style="color:var(--text-primary);margin:1.5rem 0 .5rem;">Para que usamos</h5>
+        <p>Operar o marketplace: identificar usuários, processar pagamentos via Mercado Pago, realizar repasses, enviar notificações sobre suas negociações e cumprir obrigações legais e fiscais.</p>
+
+        <h5 style="color:var(--text-primary);margin:1.5rem 0 .5rem;">Compartilhamento</h5>
+        <p>Compartilhamos dados apenas com o processador de pagamentos (Mercado Pago) e quando exigido por lei. Não vendemos dados pessoais a terceiros. O comprador e o vendedor de uma mesma transação têm acesso mútuo aos dados necessários para concluí-la (nome, cidade e chat).</p>
+
+        <h5 style="color:var(--text-primary);margin:1.5rem 0 .5rem;">Seus direitos (LGPD)</h5>
+        <p>Você pode solicitar acesso, correção ou exclusão dos seus dados a qualquer momento pela <a href="{{ url_for('page_contato') }}" style="color:var(--accent);">página de contato</a>, nos termos da Lei Geral de Proteção de Dados (Lei 13.709/2018).</p>
+
+        <p style="margin-top:2rem;color:var(--text-muted);">Zanini Scraps — Grupo Zanini S.A. · Direitos reservados à Zanini Business.</p>
+    </div>
+</div>
+{% endblock %}

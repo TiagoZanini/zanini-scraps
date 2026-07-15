@@ -243,7 +243,9 @@ def api_listing_create():
             seller_id=user.id,
             title=data.get('title', '').strip(),
             description=data.get('description', '').strip(),
-            category_id=data.get('category_id') or None,
+            category_id=data.get('category_id')
+                        or (Category.query.filter_by(slug='outros').first().id
+                            if Category.query.filter_by(slug='outros').first() else None),
             material_type=data.get('material_type', '').strip(),
             condition=data.get('condition', 'usado'),
             quantity=float(data.get('quantity', 0)),
@@ -293,6 +295,10 @@ def api_proposal_create(listing_uid):
     listing = Listing.query.filter_by(uid=listing_uid, status='active').first_or_404()
     if listing.seller_id == user.id:
         return jsonify({'error': 'Não pode propor no próprio lote'}), 403
+
+    ja_existe = Proposal.query.filter_by(listing_id=listing.id, buyer_id=user.id, status='pending').first()
+    if ja_existe:
+        return jsonify({'error': 'Você já tem uma proposta pendente neste lote.'}), 409
 
     data = request.get_json() or {}
     try:

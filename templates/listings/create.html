@@ -3,8 +3,8 @@
 {% block content %}
 <div class="container page-content">
     <div class="page-header">
-        <h1 class="page-title">Publicar Lote de Sobras</h1>
-        <p class="page-subtitle">Anuncie sobras de obra, excedentes e materiais de construção civil</p>
+        <h1 class="page-title">Publicar Material</h1>
+        <p class="page-subtitle">Anuncie sobras, excedentes e materiais para reaproveitamento e reciclagem</p>
     </div>
     <div style="max-width:720px;">
         <form method="POST" enctype="multipart/form-data">
@@ -75,10 +75,11 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label">Tipo de Preço</label>
-                            <select name="price_type" class="form-control">
-                                <option value="total">Preço Total do Lote</option>
-                                <option value="por_unidade">Preço por Unidade</option>
+                            <select name="price_type" class="form-control" id="price_type">
+                                <option value="total">Preço total do lote</option>
+                                <option value="por_unidade">Preço por unidade (ex.: por m², por kg)</option>
                             </select>
+                            <small class="form-text" id="price_hint">O valor informado é pelo lote inteiro.</small>
                         </div>
                     </div>
                     <div class="form-group">
@@ -107,15 +108,16 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label">CEP</label>
-                            <input type="text" name="cep" class="form-control" value="{{ current_user.cep or '' }}">
+                            <input type="text" name="cep" id="cep" class="form-control" value="{{ current_user.cep or '' }}" placeholder="00000-000">
+                            <small class="form-text" id="cep_hint">Digite o CEP e preenchemos cidade e estado.</small>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Tipo de Entrega</label>
+                        <label class="form-label">Como o comprador recebe o material?</label>
                         <select name="delivery_type" class="form-control">
-                            <option value="retirada">Retirada no Local</option>
-                            <option value="entrega">Entrega pelo Vendedor</option>
-                            <option value="ambos">Ambos</option>
+                            <option value="retirada">Retirada no local — o comprador busca</option>
+                            <option value="entrega">Entrega pelo vendedor — frete a combinar</option>
+                            <option value="ambos">Tanto faz — retirada ou entrega, a combinar</option>
                         </select>
                     </div>
                 </div>
@@ -125,23 +127,13 @@
                 <div class="card-header" style="font-weight:700;">📋 Origem, Retirada e Disponibilidade</div>
                 <div class="card-body">
                     <div class="form-group">
-                        <label class="form-label">Origem da sobra *</label>
-                        <textarea name="origin_declaration" class="form-control" rows="2" placeholder="Ex: Sobra de obra de alvenaria estrutural, canteiro Rua X, n° Y. Material retirado após conclusão da fundação." required></textarea>
-                        <small class="form-text">Descreva de onde vem o material — obra, depósito, produção, etc. Aumenta a confiança do comprador.</small>
+                        <label class="form-label">Origem do material <span style="color:var(--text-muted);font-weight:400;">(opcional)</span></label>
+                        <textarea name="origin_declaration" class="form-control" rows="2" placeholder="Ex: Sobra de obra de alvenaria, excedente de produção, desmonte de estrutura..."></textarea>
+                        <small class="form-text">De onde vem o material? Anúncios com origem declarada passam mais confiança ao comprador.</small>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">Quem realiza a retirada/entrega</label>
-                            <select name="who_picks_up" class="form-control">
-                                <option value="comprador">Comprador retira no local</option>
-                                <option value="vendedor">Vendedor entrega (frete a combinar)</option>
-                                <option value="negociavel">A combinar entre as partes</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Disponibilidade</label>
-                            <input type="text" name="availability" class="form-control" placeholder="Ex: Imediata, A partir de 20/07, Fins de semana">
-                        </div>
+                    <div class="form-group">
+                        <label class="form-label">A partir de quando pode ser retirado/entregue?</label>
+                        <input type="text" name="availability" class="form-control" placeholder="Ex: hoje mesmo, a partir de 20/07, somente fins de semana">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Observações para o comprador</label>
@@ -154,8 +146,8 @@
                     <div class="form-check" style="margin-top:10px;padding:12px;background:#fff7ed;border-radius:8px;border:1px solid #fed7aa;">
                         <input type="checkbox" name="venda_imediata" id="venda_imediata" value="1">
                         <div>
-                            <label for="venda_imediata" style="font-weight:700;color:var(--accent);cursor:pointer;">Venda Imediata &mdash; precisa sair rapido</label>
-                            <p style="font-size:0.78rem;color:var(--text-secondary);margin:2px 0 0;">Ativa o botao "Comprar Agora" no lote. O comprador adquire pelo preco anunciado sem negociacao.</p>
+                            <label for="venda_imediata" style="font-weight:700;color:var(--accent);cursor:pointer;">⚡ Ativar "Comprar Agora"</label>
+                            <p style="font-size:0.78rem;color:var(--text-secondary);margin:2px 0 0;">O comprador pode comprar na hora pelo preço anunciado, sem enviar proposta. Ideal para quem precisa vender rápido.</p>
                         </div>
                     </div>
                 </div>
@@ -166,8 +158,9 @@
                 <div class="card-body">
                     <div class="form-group">
                         <label class="form-label">Selecione até 5 fotos (a primeira será a capa do anúncio)</label>
-                        <input type="file" name="images" class="form-control" accept="image/*" multiple>
-                        <p class="form-text">📌 Dicas: fotografe o lote completo, detalhe do material e a etiqueta/nota se houver. JPG ou PNG, máx. 16MB cada.</p>
+                        <input type="file" name="images" id="images" class="form-control" accept="image/*" multiple>
+                        <p class="form-text">📌 Você pode selecionar várias fotos de uma vez (segure Ctrl) ou adicionar mais depois. Clique no ✕ para remover. JPG ou PNG, máx. 16MB cada.</p>
+                        <div id="preview" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;"></div>
                     </div>
                 </div>
             </div>
@@ -180,4 +173,74 @@
         </form>
     </div>
 </div>
+
+<script>
+// ── Fotos: acumular seleções, preview e remoção ──
+const inputImgs = document.getElementById('images');
+const preview = document.getElementById('preview');
+let fotos = [];
+
+inputImgs.addEventListener('change', () => {
+    for (const f of inputImgs.files) {
+        if (fotos.length >= 5) { alert('Máximo de 5 fotos.'); break; }
+        if (!f.type.startsWith('image/')) continue;
+        fotos.push(f);
+    }
+    sincronizar();
+});
+
+function sincronizar() {
+    const dt = new DataTransfer();
+    fotos.forEach(f => dt.items.add(f));
+    inputImgs.files = dt.files;
+    preview.innerHTML = '';
+    fotos.forEach((f, i) => {
+        const div = document.createElement('div');
+        div.style.cssText = 'position:relative;width:90px;height:90px;border:1px solid var(--border);border-radius:8px;overflow:hidden;';
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(f);
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+        const x = document.createElement('button');
+        x.type = 'button';
+        x.textContent = '✕';
+        x.style.cssText = 'position:absolute;top:2px;right:2px;background:rgba(0,0,0,.65);color:#fff;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:12px;line-height:1;';
+        x.onclick = () => { fotos.splice(i, 1); sincronizar(); };
+        if (i === 0) {
+            const capa = document.createElement('span');
+            capa.textContent = 'CAPA';
+            capa.style.cssText = 'position:absolute;bottom:2px;left:2px;background:var(--accent);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;';
+            div.appendChild(capa);
+        }
+        div.appendChild(img); div.appendChild(x);
+        preview.appendChild(div);
+    });
+}
+
+// ── CEP → cidade/estado (ViaCEP) ──
+const cepInput = document.getElementById('cep');
+cepInput.addEventListener('blur', async () => {
+    const cep = cepInput.value.replace(/\D/g, '');
+    if (cep.length !== 8) return;
+    const hint = document.getElementById('cep_hint');
+    try {
+        const r = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+        const d = await r.json();
+        if (d.erro) { hint.textContent = 'CEP não encontrado — preencha cidade e estado manualmente.'; return; }
+        document.querySelector('input[name=city]').value = d.localidade || '';
+        document.querySelector('select[name=state]').value = d.uf || '';
+        hint.textContent = `✔ ${d.logradouro ? d.logradouro + ', ' : ''}${d.bairro ? d.bairro + ' — ' : ''}${d.localidade}/${d.uf}`;
+    } catch (e) { hint.textContent = 'Não foi possível consultar o CEP agora.'; }
+});
+
+// ── Dica do tipo de preço conforme a unidade ──
+const priceType = document.getElementById('price_type');
+const unitSel = document.querySelector('select[name=unit]');
+function atualizaHint() {
+    const u = unitSel.options[unitSel.selectedIndex].text;
+    document.getElementById('price_hint').textContent =
+        priceType.value === 'total' ? 'O valor informado é pelo lote inteiro.' : `O valor informado é por ${u}.`;
+}
+priceType.addEventListener('change', atualizaHint);
+unitSel.addEventListener('change', atualizaHint);
+</script>
 {% endblock %}

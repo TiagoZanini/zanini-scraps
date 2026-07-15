@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Central de Ajuda — {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="page-content" style="max-width:820px;margin:0 auto;">
+    <h1 class="page-title" style="margin-bottom:2rem;">Central de Ajuda</h1>
+
+    <div class="card" style="margin-bottom:1rem;"><div class="card-body">
+        <h5 style="color:var(--text-primary);margin:0 0 .5rem;">Como funciona a compra?</h5>
+        <p style="color:var(--text-secondary);margin:0;">Encontre o material no marketplace, converse com o vendedor pelo chat ou envie uma proposta com o seu valor. Quando o vendedor aceitar (ou você usar o "Comprar Agora"), pague via PIX. O valor fica <strong>retido com segurança na plataforma</strong> — o vendedor só recebe depois que você confirmar o recebimento do material.</p>
+    </div></div>
+
+    <div class="card" style="margin-bottom:1rem;"><div class="card-body">
+        <h5 style="color:var(--text-primary);margin:0 0 .5rem;">Como funciona a venda?</h5>
+        <p style="color:var(--text-secondary);margin:0;">Publique seu material com fotos, preço e localização. Responda propostas e mensagens pelo site. Ao aceitar uma proposta, o lote fica reservado. Após o comprador pagar e confirmar o recebimento, o valor líquido (descontada a comissão de 5%) é repassado para a chave PIX cadastrada no seu perfil.</p>
+    </div></div>
+
+    <div class="card" style="margin-bottom:1rem;"><div class="card-body">
+        <h5 style="color:var(--text-primary);margin:0 0 .5rem;">O pagamento é seguro?</h5>
+        <p style="color:var(--text-secondary);margin:0;">Sim. O pagamento é processado pelo Mercado Pago e fica em custódia: o vendedor não recebe antes da entrega, e o comprador não perde o dinheiro se o material não for entregue. Nunca negocie ou pague fora da plataforma — transações por fora não têm nenhuma proteção.</p>
+    </div></div>
+
+    <div class="card" style="margin-bottom:1rem;"><div class="card-body">
+        <h5 style="color:var(--text-primary);margin:0 0 .5rem;">Quem realiza a entrega?</h5>
+        <p style="color:var(--text-secondary);margin:0;">Depende do anúncio: retirada no local (você busca), entrega pelo vendedor (frete a combinar) ou a combinar entre as partes. Use o chat da transação para acertar os detalhes.</p>
+    </div></div>
+
+    <div class="card"><div class="card-body">
+        <h5 style="color:var(--text-primary);margin:0 0 .5rem;">Precisa de mais ajuda?</h5>
+        <p style="color:var(--text-secondary);margin:0;">Fale com a gente pela <a href="{{ url_for('page_contato') }}" style="color:var(--accent);">página de contato</a>.</p>
+    </div></div>
+</div>
+{% endblock %}
