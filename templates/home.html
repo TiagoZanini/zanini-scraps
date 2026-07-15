@@ -48,6 +48,20 @@
 </section>
 {% endif %}
 
+{% if most_viewed %}
+<section class="section">
+    <div class="container">
+        <h2 class="section-title">🔥 Mais Procurados</h2>
+        <p class="section-subtitle">Os anúncios mais visualizados da plataforma</p>
+        <div class="grid grid-4">
+            {% for listing in most_viewed %}
+            {% include "listings/_card.html" %}
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
 <!-- Recent -->
 <section class="section">
     <div class="container">

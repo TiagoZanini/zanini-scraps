@@ -281,13 +281,15 @@ def logout():
 def home():
     featured = Listing.query.filter_by(status='active', is_featured=True).order_by(Listing.created_at.desc()).limit(6).all()
     recent = Listing.query.filter_by(status='active').order_by(Listing.created_at.desc()).limit(12).all()
+    most_viewed = Listing.query.filter_by(status='active').filter(Listing.views > 0).order_by(Listing.views.desc()).limit(4).all()
     stats = {
         'total_listings': Listing.query.filter_by(status='active').count(),
         'total_users': User.query.count(),
         'total_transactions': Transaction.query.count(),
         'total_gmv': db.session.query(db.func.sum(Transaction.gross_amount)).scalar() or 0
     }
-    return render_template('home.html', featured=featured, recent=recent, stats=stats)
+    return render_template('home.html', featured=featured, recent=recent,
+                           most_viewed=most_viewed, stats=stats)
 
 
 @app.route('/dashboard')
@@ -1270,6 +1272,14 @@ def migrate_venda_imediata():
         db.session.rollback()
         flash(f'Erro na migracao: {str(e)[:200]}', 'danger')
     return redirect(url_for('admin_dashboard'))
+
+
+@app.route('/favoritos')
+@login_required
+def favorites_list():
+    favs = Favorite.query.filter_by(user_id=current_user.id).order_by(Favorite.created_at.desc()).all()
+    listings = [f.listing for f in favs if f.listing]
+    return render_template('listings/favorites.html', listings=listings)
 
 
 # ─── Páginas institucionais ───

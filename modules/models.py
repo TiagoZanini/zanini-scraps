@@ -270,6 +270,8 @@ class Favorite(db.Model):
 
     __table_args__ = (db.UniqueConstraint('user_id', 'listing_id'),)
 
+    listing = db.relationship('Listing', foreign_keys=[listing_id])
+
 
 class Notification(db.Model):
     __tablename__ = 'notifications'

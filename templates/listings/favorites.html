@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Favoritos — {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="page-content">
+    <div class="container">
+        <h1 class="page-title" style="margin-bottom:.5rem;">❤️ Favoritos</h1>
+        <p style="color:var(--text-muted);margin-bottom:2rem;">Anúncios que você marcou para olhar depois</p>
+
+        {% if listings %}
+        <div class="grid grid-4">
+            {% for listing in listings %}
+            {% include "listings/_card.html" %}
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state" style="padding:4rem 2rem;text-align:center;">
+            <div style="font-size:3rem;margin-bottom:1rem;">🤍</div>
+            <p style="color:var(--text-muted);">Nenhum favorito ainda. Clique no coração de um anúncio para salvá-lo aqui.</p>
+            <a href="{{ url_for('marketplace') }}" class="btn btn-primary" style="margin-top:16px;">Explorar o Marketplace</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
