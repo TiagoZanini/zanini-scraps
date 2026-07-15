@@ -3,7 +3,7 @@
 {% block content %}
 <div class="page-content">
     <div class="container">
-        <h1 class="page-title" style="margin-bottom:.5rem;">❤️ Favoritos</h1>
+        <h1 class="page-title" style="margin-bottom:.5rem;display:flex;align-items:center;gap:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>Favoritos</h1>
         <p style="color:var(--text-muted);margin-bottom:2rem;">Anúncios que você marcou para olhar depois</p>
 
         {% if listings %}
@@ -14,7 +14,7 @@
         </div>
         {% else %}
         <div class="empty-state" style="padding:4rem 2rem;text-align:center;">
-            <div style="font-size:3rem;margin-bottom:1rem;">🤍</div>
+            <div class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
             <p style="color:var(--text-muted);">Nenhum favorito ainda. Clique no coração de um anúncio para salvá-lo aqui.</p>
             <a href="{{ url_for('marketplace') }}" class="btn btn-primary" style="margin-top:16px;">Explorar o Marketplace</a>
         </div>

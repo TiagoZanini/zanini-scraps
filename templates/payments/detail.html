@@ -8,7 +8,7 @@
       <!-- Resumo da Transação -->
       <div class="card">
         <div class="card-body">
-          <h2 style="color:var(--text-primary);margin-bottom:1.5rem;margin-top:0;">💰 Detalhes do Pagamento</h2>
+          <h2 style="color:var(--text-primary);margin-bottom:1.5rem;margin-top:0;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Detalhes do Pagamento</h2>
           <div class="grid grid-2 mb-4">
             <div style="background:var(--bg-secondary);padding:1rem;border-radius:6px;">
               <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:.3rem;">Valor Bruto</p>
@@ -16,14 +16,14 @@
             </div>
             <div style="background:var(--bg-secondary);padding:1rem;border-radius:6px;">
               <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:.3rem;">Comissão Plataforma (5%)</p>
-              <h3 style="color:#dc3545;margin:0;">− {{ tx.commission|brl }}</h3>
+              <h3 style="color:var(--danger);margin:0;">− {{ tx.commission|brl }}</h3>
             </div>
-            <div style="background:rgba(var(--accent-rgb),.1);padding:1rem;border-radius:6px;border:1px solid var(--accent);">
+            <div style="background:var(--bg-2);padding:1rem;border-radius:6px;border:1px solid var(--accent);">
               <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:.3rem;">Valor Líquido ao Vendedor</p>
               <h3 style="color:var(--accent);margin:0;">{{ tx.net_amount|brl }}</h3>
             </div>
             <div style="background:var(--bg-secondary);padding:1rem;border-radius:6px;">
-              <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:.3rem;">📅 Data</p>
+              <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:.3rem;">Data</p>
               <h4 style="color:var(--text-primary);margin:0;">{{ tx.created_at.strftime('%d/%m/%Y') }}</h4>
             </div>
           </div>
@@ -31,13 +31,13 @@
           <hr style="border-color:var(--border);">
           <div class="grid grid-2 mb-3">
             <div>
-              <p style="color:var(--text-muted);font-size:.85rem;text-transform:uppercase;margin-bottom:.5rem;">👤 Vendedor</p>
+              <p style="color:var(--text-muted);font-size:.85rem;text-transform:uppercase;margin-bottom:.5rem;">Vendedor</p>
               <p style="color:var(--text-primary);margin:0;">
                 <a href="{{ url_for('seller_profile', uid=tx.seller.uid) }}" style="color:var(--accent);text-decoration:none;">{{ tx.seller.name }}</a>
               </p>
             </div>
             <div>
-              <p style="color:var(--text-muted);font-size:.85rem;text-transform:uppercase;margin-bottom:.5rem;">👤 Comprador</p>
+              <p style="color:var(--text-muted);font-size:.85rem;text-transform:uppercase;margin-bottom:.5rem;">Comprador</p>
               <p style="color:var(--text-primary);margin:0;">
                 <a href="{{ url_for('seller_profile', uid=tx.buyer.uid) }}" style="color:var(--accent);text-decoration:none;">{{ tx.buyer.name }}</a>
               </p>
@@ -50,7 +50,7 @@
       {% if current_user.id == tx.buyer.id and tx.payment_status == 'pending' %}
       <div class="card" style="margin-top:2rem;">
         <div class="card-header">
-          <h5 style="color:var(--text-primary);margin:0;">💳 Escolha a Forma de Pagamento</h5>
+          <h5 style="color:var(--text-primary);margin:0;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> Escolha a Forma de Pagamento</h5>
         </div>
         <div class="card-body">
           <p style="color:var(--text-secondary);margin-bottom:1.5rem;">Selecione como deseja pagar:</p>
@@ -58,7 +58,7 @@
             <form action="{{ url_for('transaction_pay', uid=tx.uid) }}" method="POST">
               <input type="hidden" name="method" value="pix">
               <button type="submit" style="background:var(--bg-secondary);border:2px solid var(--border);color:var(--text-primary);padding:1.2rem;border-radius:8px;text-align:left;width:100%;cursor:pointer;transition:.2s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-                <div style="font-size:1.8rem;margin-bottom:.4rem;">📱</div>
+                <div style="margin-bottom:.4rem;"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></div>
                 <strong>PIX</strong>
                 <div style="color:var(--text-muted);font-size:.82rem;margin-top:.2rem;">Instantâneo · Sem taxa extra</div>
               </button>
@@ -66,7 +66,7 @@
             <form action="{{ url_for('transaction_pay', uid=tx.uid) }}" method="POST">
               <input type="hidden" name="method" value="boleto">
               <button type="submit" style="background:var(--bg-secondary);border:2px solid var(--border);color:var(--text-primary);padding:1.2rem;border-radius:8px;text-align:left;width:100%;cursor:pointer;transition:.2s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-                <div style="font-size:1.8rem;margin-bottom:.4rem;">🏦</div>
+                <div style="margin-bottom:.4rem;"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-4h6v4"/></svg></div>
                 <strong>Boleto Bancário</strong>
                 <div style="color:var(--text-muted);font-size:.82rem;margin-top:.2rem;">Vence em 3 dias úteis · R$ 3,49</div>
               </button>
@@ -79,7 +79,7 @@
       {% elif tx.payment_status == 'awaiting_payment' and tx.payment_method == 'pix' %}
       <div class="card" style="margin-top:2rem;">
         <div class="card-header">
-          <h5 style="color:var(--text-primary);margin:0;">📱 Pague com PIX</h5>
+          <h5 style="color:var(--text-primary);margin:0;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg> Pague com PIX</h5>
         </div>
         <div class="card-body" style="text-align:center;">
           <p style="color:var(--text-secondary);margin-bottom:1rem;">Escaneie o QR Code ou copie o código PIX abaixo:</p>
@@ -88,11 +88,11 @@
           {% endif %}
           {% if tx.mp_qr_code %}
           <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;padding:.8rem;font-size:.78rem;word-break:break-all;color:var(--text-secondary);margin-bottom:1rem;text-align:left;">{{ tx.mp_qr_code }}</div>
-          <button onclick="navigator.clipboard.writeText('{{ tx.mp_qr_code }}');this.textContent='✅ Copiado!';" style="background:var(--accent);border:none;color:#fff;padding:.6rem 1.4rem;border-radius:6px;cursor:pointer;font-weight:600;margin-bottom:1rem;">📋 Copiar Código PIX</button>
+          <button onclick="navigator.clipboard.writeText('{{ tx.mp_qr_code }}');this.textContent='✅ Copiado!';" style="background:var(--accent);border:none;color:var(--bg-0);padding:.6rem 1.4rem;border-radius:6px;cursor:pointer;font-weight:600;margin-bottom:1rem;">📋 Copiar Código PIX</button>
           {% endif %}
           <p style="color:var(--text-muted);font-size:.82rem;">Após o pagamento, a confirmação é automática. Aguarde alguns instantes.</p>
-          <div style="background:rgba(255,193,7,.1);border:1px solid #ffc107;padding:.8rem;border-radius:6px;margin-top:1rem;">
-            <span style="color:#ffc107;">⏳ Aguardando confirmação do pagamento...</span>
+          <div style="background:rgba(251,191,36,.1);border:1px solid var(--warning);padding:.8rem;border-radius:6px;margin-top:1rem;">
+            <span style="color:var(--warning);"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Aguardando confirmação do pagamento...</span>
           </div>
         </div>
       </div>
@@ -101,15 +101,15 @@
       {% elif tx.payment_status == 'awaiting_payment' and tx.payment_method == 'boleto' %}
       <div class="card" style="margin-top:2rem;">
         <div class="card-header">
-          <h5 style="color:var(--text-primary);margin:0;">🏦 Boleto Bancário</h5>
+          <h5 style="color:var(--text-primary);margin:0;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-4h6v4"/></svg> Boleto Bancário</h5>
         </div>
         <div class="card-body" style="text-align:center;">
           {% if tx.mp_boleto_url %}
-          <a href="{{ tx.mp_boleto_url }}" target="_blank" class="btn btn-primary" style="font-size:1rem;padding:.8rem 2rem;margin-bottom:1rem;">🖨️ Abrir / Imprimir Boleto</a>
+          <a href="{{ tx.mp_boleto_url }}" target="_blank" class="btn btn-primary" style="font-size:1rem;padding:.8rem 2rem;margin-bottom:1rem;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Abrir / Imprimir Boleto</a>
           {% endif %}
           {% if tx.mp_barcode %}
           <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;padding:.8rem;font-size:.78rem;word-break:break-all;color:var(--text-secondary);margin-bottom:1rem;text-align:left;">{{ tx.mp_barcode }}</div>
-          <button onclick="navigator.clipboard.writeText('{{ tx.mp_barcode }}');this.textContent='✅ Copiado!';" style="background:var(--accent);border:none;color:#fff;padding:.6rem 1.4rem;border-radius:6px;cursor:pointer;font-weight:600;">📋 Copiar Código de Barras</button>
+          <button onclick="navigator.clipboard.writeText('{{ tx.mp_barcode }}');this.textContent='✅ Copiado!';" style="background:var(--accent);border:none;color:var(--bg-0);padding:.6rem 1.4rem;border-radius:6px;cursor:pointer;font-weight:600;">📋 Copiar Código de Barras</button>
           {% endif %}
           <p style="color:var(--text-muted);font-size:.82rem;margin-top:1rem;">Vencimento em 3 dias úteis. A confirmação pode levar até 2 dias úteis após o pagamento.</p>
         </div>
@@ -123,16 +123,16 @@
         </div>
         <div class="card-body">
           <div style="padding:1rem;border-radius:6px;
-            {% if tx.payment_status == 'released' %}background:rgba(40,167,69,.1);border:1px solid #28a745;
-            {% elif tx.payment_status in ['escrow','awaiting_payment'] %}background:rgba(255,193,7,.1);border:1px solid #ffc107;
-            {% else %}background:rgba(220,53,69,.1);border:1px solid #dc3545;{% endif %}">
+            {% if tx.payment_status == 'released' %}background:rgba(52,211,153,.1);border:1px solid var(--success);
+            {% elif tx.payment_status in ['escrow','awaiting_payment'] %}background:rgba(251,191,36,.1);border:1px solid var(--warning);
+            {% else %}background:rgba(248,113,113,.1);border:1px solid var(--danger);{% endif %}">
             <p style="margin:0;color:
-              {% if tx.payment_status == 'released' %}#28a745
-              {% elif tx.payment_status in ['escrow','awaiting_payment'] %}#ffc107
-              {% else %}#dc3545{% endif %};">
-              {% if tx.payment_status == 'released' %}✅ Concluída — pagamento liberado ao vendedor
-              {% elif tx.payment_status == 'escrow' %}🔒 Pago — o valor fica retido com segurança até o comprador confirmar o recebimento
-              {% elif tx.payment_status == 'awaiting_payment' %}⏳ Aguardando pagamento do comprador
+              {% if tx.payment_status == 'released' %}var(--success)
+              {% elif tx.payment_status in ['escrow','awaiting_payment'] %}var(--warning)
+              {% else %}var(--danger){% endif %};">
+              {% if tx.payment_status == 'released' %}<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Concluída — pagamento liberado ao vendedor
+              {% elif tx.payment_status == 'escrow' %}<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Pago — o valor fica retido com segurança até o comprador confirmar o recebimento
+              {% elif tx.payment_status == 'awaiting_payment' %}<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Aguardando pagamento do comprador
               {% else %}{{ tx.payment_status|status_pt }}{% endif %}
             </p>
           </div>
@@ -146,7 +146,7 @@
       <!-- Logística & Escrow -->
       <div class="card" style="margin-top:2rem;">
         <div class="card-header">
-          <h5 style="color:var(--text-primary);margin:0;">📦 Logística & Escrow</h5>
+          <h5 style="color:var(--text-primary);margin:0;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> Logística & Escrow</h5>
         </div>
         <div class="card-body">
           <div class="grid grid-2 mb-3">
@@ -168,21 +168,21 @@
           </div>
 
           {% if current_user.id == tx.seller.id and tx.logistics_status == 'pending' and tx.payment_status == 'escrow' %}
-          <div style="background:rgba(var(--accent-rgb),.1);border:1px solid var(--accent);padding:1rem;border-radius:6px;margin-bottom:1rem;">
-            <p style="color:var(--accent);margin-bottom:.5rem;font-weight:600;">📅 Agendar Retirada</p>
+          <div style="background:var(--bg-2);border:1px solid var(--accent);padding:1rem;border-radius:6px;margin-bottom:1rem;">
+            <p style="color:var(--text-primary);margin-bottom:.5rem;font-weight:600;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Agendar Retirada</p>
             <form action="{{ url_for('schedule_pickup', uid=tx.uid) }}" method="POST">
               <input type="date" name="pickup_date" class="form-control" style="margin-bottom:.5rem;" required>
-              <button type="submit" style="background:var(--accent);border:none;color:white;width:100%;padding:.5rem 1rem;border-radius:4px;cursor:pointer;">Confirmar Data</button>
+              <button type="submit" style="background:var(--accent);border:none;color:var(--bg-0);width:100%;padding:.5rem 1rem;border-radius:4px;cursor:pointer;">Confirmar Data</button>
             </form>
           </div>
           {% endif %}
 
           {% if current_user.id == tx.buyer.id and tx.logistics_status == 'in_transit' %}
-          <div style="background:rgba(40,167,69,.1);border:1px solid #28a745;padding:1rem;border-radius:6px;">
-            <p style="color:#28a745;margin-bottom:.5rem;font-weight:600;">✅ Confirmar Recebimento</p>
+          <div style="background:rgba(52,211,153,.1);border:1px solid var(--success);padding:1rem;border-radius:6px;">
+            <p style="color:var(--success);margin-bottom:.5rem;font-weight:600;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Confirmar Recebimento</p>
             <p style="color:var(--text-secondary);font-size:.9rem;margin-bottom:.8rem;">Confirme o recebimento para liberar o pagamento ao vendedor.</p>
             <form action="{{ url_for('confirm_delivery', uid=tx.uid) }}" method="POST">
-              <button type="submit" style="background:#28a745;border:none;color:white;width:100%;padding:.5rem 1rem;border-radius:4px;cursor:pointer;font-weight:600;">Confirmar Entrega e Liberar Pagamento</button>
+              <button type="submit" style="background:var(--success);border:none;color:var(--bg-0);width:100%;padding:.5rem 1rem;border-radius:4px;cursor:pointer;font-weight:600;">Confirmar Entrega e Liberar Pagamento</button>
             </form>
           </div>
           {% endif %}
@@ -195,7 +195,7 @@
     <div>
       <div class="card">
         <div class="card-body">
-          <h6 style="color:var(--text-muted);text-transform:uppercase;font-size:.8rem;margin-bottom:1rem;">📦 Anúncio</h6>
+          <h6 style="color:var(--text-muted);text-transform:uppercase;font-size:.8rem;margin-bottom:1rem;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> Anúncio</h6>
           <h5 style="color:var(--text-primary);margin-bottom:1rem;">{{ tx.display_title }}</h5>
           <div class="mb-3">
             <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:.3rem;">{% if tx.proposal %}Valor da Proposta{% else %}Valor da Compra{% endif %}</p>
@@ -203,11 +203,11 @@
           </div>
           {% if tx.listing_ref %}
           <a href="{{ url_for('listing_detail', uid=tx.listing_ref.uid) }}" style="display:block;border:1px solid var(--border);color:var(--text-primary);text-align:center;text-decoration:none;padding:.5rem 1rem;border-radius:4px;">
-            👁️ Ver Anúncio
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Ver Anúncio
           </a>
           {% set other = tx.seller if current_user.id == tx.buyer_id else tx.buyer %}
           <a href="{{ url_for('chat_thread', listing_uid=tx.listing_ref.uid, user_uid=other.uid) }}" style="display:block;border:1px solid var(--accent);color:var(--accent);text-align:center;text-decoration:none;padding:.5rem 1rem;border-radius:4px;margin-top:.5rem;">
-            💬 Conversar com {% if current_user.id == tx.buyer_id %}o vendedor{% else %}o comprador{% endif %}
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg> Conversar com {% if current_user.id == tx.buyer_id %}o vendedor{% else %}o comprador{% endif %}
           </a>
           {% endif %}
         </div>
@@ -216,7 +216,7 @@
       {% if tx.mp_payment_id %}
       <div class="card" style="margin-top:1rem;">
         <div class="card-body">
-          <h6 style="color:var(--text-muted);font-size:.8rem;text-transform:uppercase;margin-bottom:.5rem;">🔖 ID Mercado Pago</h6>
+          <h6 style="color:var(--text-muted);font-size:.8rem;text-transform:uppercase;margin-bottom:.5rem;">ID Mercado Pago</h6>
           <code style="font-size:.8rem;color:var(--text-secondary);">{{ tx.mp_payment_id }}</code>
         </div>
       </div>

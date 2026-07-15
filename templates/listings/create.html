@@ -124,7 +124,7 @@
             </div>
 
             <div class="card" style="margin-bottom:24px;border-left:4px solid var(--accent);">
-                <div class="card-header" style="font-weight:700;">📋 Origem, Retirada e Disponibilidade</div>
+                <div class="card-header" style="font-weight:700;display:flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>Origem, Retirada e Disponibilidade</div>
                 <div class="card-body">
                     <div class="form-group">
                         <label class="form-label">Origem do material <span style="color:var(--text-muted);font-weight:400;">(opcional)</span></label>
@@ -143,23 +143,23 @@
                         <input type="checkbox" name="has_invoice" id="has_invoice" value="1">
                         <label for="has_invoice" style="font-weight:600;">Possuo nota fiscal de origem deste material</label>
                     </div>
-                    <div class="form-check" style="margin-top:10px;padding:12px;background:#fff7ed;border-radius:8px;border:1px solid #fed7aa;">
+                    <div class="form-check" style="margin-top:10px;padding:12px;background:var(--bg-2);border-radius:8px;border:1px solid var(--bg-3);">
                         <input type="checkbox" name="venda_imediata" id="venda_imediata" value="1">
                         <div>
-                            <label for="venda_imediata" style="font-weight:700;color:var(--accent);cursor:pointer;">⚡ Ativar "Comprar Agora"</label>
+                            <label for="venda_imediata" style="font-weight:700;color:var(--text-primary);cursor:pointer;display:inline-flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Ativar "Comprar Agora"</label>
                             <p style="font-size:0.78rem;color:var(--text-secondary);margin:2px 0 0;">O comprador pode comprar na hora pelo preço anunciado, sem enviar proposta. Ideal para quem precisa vender rápido.</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="card" style="margin-bottom:24px;border-left:4px solid #f59e0b;">
-                <div class="card-header" style="font-weight:700;">📸 Fotos do Material <span style="color:#dc2626;font-size:0.8rem;margin-left:8px;">Recomendado — lotes com foto vendem 3× mais rápido</span></div>
+            <div class="card" style="margin-bottom:24px;border-left:4px solid var(--warning);">
+                <div class="card-header" style="font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Fotos do Material <span style="color:var(--warning);font-size:0.8rem;margin-left:8px;">Recomendado — lotes com foto vendem 3× mais rápido</span></div>
                 <div class="card-body">
                     <div class="form-group">
                         <label class="form-label">Selecione até 5 fotos (a primeira será a capa do anúncio)</label>
                         <input type="file" name="images" id="images" class="form-control" accept="image/*" multiple>
-                        <p class="form-text">📌 Você pode selecionar várias fotos de uma vez (segure Ctrl) ou adicionar mais depois. Clique no ✕ para remover. JPG ou PNG, máx. 16MB cada.</p>
+                        <p class="form-text">Você pode selecionar várias fotos de uma vez (segure Ctrl) ou adicionar mais depois. Clique no ✕ para remover. JPG ou PNG, máx. 16MB cada.</p>
                         <div id="preview" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;"></div>
                     </div>
                 </div>
@@ -208,7 +208,7 @@ function sincronizar() {
         if (i === 0) {
             const capa = document.createElement('span');
             capa.textContent = 'CAPA';
-            capa.style.cssText = 'position:absolute;bottom:2px;left:2px;background:var(--accent);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;';
+            capa.style.cssText = 'position:absolute;bottom:2px;left:2px;background:var(--accent);color:var(--bg-0);font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;';
             div.appendChild(capa);
         }
         div.appendChild(img); div.appendChild(x);

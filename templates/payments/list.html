@@ -2,7 +2,7 @@
 {% block title %}Transações — {{ platform_name }}{% endblock %}
 {% block content %}
 <div class="page-content">
-    <h1 class="page-title" style="margin-bottom:2rem;">💳 Transações</h1>
+    <h1 class="page-title" style="margin-bottom:2rem;"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> Transações</h1>
 
     {% if transactions %}
     <div class="table-wrap">
@@ -43,7 +43,7 @@
                                 {% if is_buyer %}Aguardando seu pagamento{% else %}Aguardando pagamento do comprador{% endif %}
                             </span>
                         {% elif tx.payment_status == 'escrow' %}
-                            <span class="badge-status badge-pending" style="background:#e0f2fe;color:#075985;">
+                            <span class="badge-status badge-pending" style="background:rgba(94,208,255,.12);color:var(--info);">
                                 {% if is_buyer %}Pago — confirme quando receber{% else %}Pago — combine a entrega{% endif %}
                             </span>
                         {% elif tx.payment_status == 'released' %}
@@ -70,7 +70,7 @@
     </div>
     {% else %}
     <div class="empty-state" style="padding:4rem 2rem;text-align:center;">
-        <div style="font-size:3rem;margin-bottom:1rem;">💳</div>
+        <div class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
         <p style="color:var(--text-muted);">Nenhuma transação ainda. Aceite uma proposta para criar uma.</p>
     </div>
     {% endif %}

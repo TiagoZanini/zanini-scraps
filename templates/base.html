@@ -4,18 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{{ platform_name }}{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260608-airbnb">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260715-zanini-dark">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700&display=swap" rel="stylesheet">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-    <meta name="theme-color" content="#ffffff">
+    <meta name="theme-color" content="#0b0b0c">
     {% block head %}{% endblock %}
 </head>
 <body>
     <!-- Navbar -->
     <nav class="navbar">
         <a href="{{ url_for('home') }}" class="navbar-brand">
-            <div class="logo-mark">ZS</div>
+            <div class="logo-mark">{% include "_symbol.html" %}</div>
             {{ platform_name }}
         </a>
         <ul class="navbar-nav">
@@ -112,11 +112,11 @@
                 </div>
             </div>
             <div class="footer-bottom">
-                <span>&copy; {{ current_year }} {{ platform_name }} &mdash; Todos os direitos reservados</span>
-                <span>Construção Civil &bull; Pagamento Seguro &bull; Logística Integrada</span>
+                <span>&copy; {{ current_year }} Zanini Scraps by Zanini Business</span>
+                <span>Construção Civil &middot; Pagamento Seguro &middot; Logística Integrada</span>
             </div>
             <div class="dev-credit">
-                Desenvolvido por Grupo Zanini S.A. &mdash; Direitos reservados à Zanini Business &mdash; Inventor Tiago Lourenço Zanini
+                Desenvolvido por Grupo Zanini S.A. &middot; Direitos reservados à Zanini Business &middot; Inventor Tiago Lourenço Zanini
             </div>
         </div>
     </footer>
