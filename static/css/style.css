@@ -48,6 +48,7 @@
 
     --font-ui:    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     --font-brand: 'Sora', 'Inter', sans-serif;
+    --font-mono:  'JetBrains Mono', ui-monospace, monospace;
 }
 
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -86,10 +87,11 @@ a:hover { color: var(--accent-dark); }
     align-items: center;
     gap: 10px;
     font-family: var(--font-brand);
-    font-size: 1.05rem;
+    font-size: 1rem;
     font-weight: 700;
     color: var(--text-primary);
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
 }
 .logo-mark {
     width: 34px;
@@ -287,9 +289,9 @@ a:hover { color: var(--accent-dark); }
     margin-top: 52px;
 }
 .hero-stat .number {
-    font-family: var(--font-brand);
-    font-size: 1.75rem;
-    font-weight: 700;
+    font-family: var(--font-mono);
+    font-size: 1.6rem;
+    font-weight: 600;
     color: var(--text-primary);
     letter-spacing: -0.5px;
 }
@@ -627,7 +629,7 @@ textarea.form-control { min-height: 100px; height: auto; padding: 12px 14px; res
     font-size: 0.78rem;
     color: var(--text-secondary);
 }
-.data-pill strong { color: var(--text-primary); font-weight: 700; }
+.data-pill strong { color: var(--text-primary); font-weight: 600; font-family: var(--font-mono); }
 
 /* ─── TABLE ─── */
 .table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--bg-3); background: var(--bg-1); }

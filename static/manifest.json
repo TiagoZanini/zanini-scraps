@@ -4,7 +4,14 @@
     "description": "Sistema Nacional de Comercialização de Sobras Industriais",
     "start_url": "/",
     "display": "standalone",
-    "background_color": "#0a0e17",
-    "theme_color": "#00d4aa",
-    "icons": []
+    "background_color": "#0b0b0c",
+    "theme_color": "#0b0b0c",
+    "icons": [
+        {
+            "src": "/static/img/scraps-z.png",
+            "sizes": "960x960",
+            "type": "image/png",
+            "purpose": "any"
+        }
+    ]
 }
