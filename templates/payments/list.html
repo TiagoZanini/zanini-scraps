@@ -11,9 +11,8 @@
                 <tr style="border-bottom:1px solid var(--border);">
                     <th style="color:var(--text-muted);background:var(--bg-secondary);border:none;text-align:left;padding:.75rem;">Anúncio</th>
                     <th style="color:var(--text-muted);background:var(--bg-secondary);border:none;text-align:left;padding:.75rem;">Parte</th>
-                    <th style="color:var(--text-muted);background:var(--bg-secondary);border:none;text-align:right;padding:.75rem;white-space:nowrap;">Valor Bruto</th>
-                    <th style="color:var(--text-muted);background:var(--bg-secondary);border:none;text-align:right;padding:.75rem;white-space:nowrap;">Comissão</th>
-                    <th style="color:var(--text-muted);background:var(--bg-secondary);border:none;text-align:right;padding:.75rem;white-space:nowrap;">Valor Líquido</th>
+                    <th style="color:var(--text-muted);background:var(--bg-secondary);border:none;text-align:right;padding:.75rem;white-space:nowrap;">Valor</th>
+                    <th style="color:var(--text-muted);background:var(--bg-secondary);border:none;text-align:right;padding:.75rem;white-space:nowrap;">Você Recebe</th>
                     <th style="color:var(--text-muted);background:var(--bg-secondary);border:none;text-align:left;padding:.75rem;">Situação</th>
                     <th style="color:var(--text-muted);background:var(--bg-secondary);border:none;text-align:center;padding:.75rem;"></th>
                 </tr>
@@ -30,11 +29,13 @@
                     <td style="color:var(--text-primary);padding:1rem .75rem;font-weight:600;text-align:right;white-space:nowrap;">
                         {{ tx.gross_amount|brl }}
                     </td>
-                    <td style="color:var(--text-muted);padding:1rem .75rem;font-size:.9rem;text-align:right;white-space:nowrap;">
-                        − {{ tx.commission|brl }}
-                    </td>
-                    <td style="color:var(--accent);padding:1rem .75rem;font-weight:600;text-align:right;white-space:nowrap;">
-                        {{ tx.net_amount|brl }}
+                    <td style="padding:1rem .75rem;font-weight:600;text-align:right;white-space:nowrap;">
+                        {% if current_user.id == tx.seller_id %}
+                            <span style="color:var(--accent);">{{ tx.net_amount|brl }}</span>
+                            <div style="color:var(--text-muted);font-size:.75rem;font-weight:400;">após comissão 5%</div>
+                        {% else %}
+                            <span style="color:var(--text-muted);">—</span>
+                        {% endif %}
                     </td>
                     <td style="padding:1rem .75rem;">
                         {% set is_buyer = current_user.id == tx.buyer_id %}

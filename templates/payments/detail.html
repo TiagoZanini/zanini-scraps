@@ -9,19 +9,22 @@
       <div class="card">
         <div class="card-body">
           <h2 style="color:var(--text-primary);margin-bottom:1.5rem;margin-top:0;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Detalhes do Pagamento</h2>
+          {% set eh_vendedor = current_user.id == tx.seller_id %}
           <div class="grid grid-2 mb-4">
             <div style="background:var(--bg-secondary);padding:1rem;border-radius:6px;">
-              <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:.3rem;">Valor Bruto</p>
+              <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:.3rem;">{% if eh_vendedor %}Valor da Venda{% else %}Valor Total{% endif %}</p>
               <h3 style="color:var(--text-primary);margin:0;">{{ tx.gross_amount|brl }}</h3>
             </div>
+            {% if eh_vendedor %}
             <div style="background:var(--bg-secondary);padding:1rem;border-radius:6px;">
               <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:.3rem;">Comissão Plataforma (5%)</p>
               <h3 style="color:var(--danger);margin:0;">− {{ tx.commission|brl }}</h3>
             </div>
             <div style="background:var(--bg-2);padding:1rem;border-radius:6px;border:1px solid var(--accent);">
-              <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:.3rem;">Valor Líquido ao Vendedor</p>
+              <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:.3rem;">Você Recebe</p>
               <h3 style="color:var(--accent);margin:0;">{{ tx.net_amount|brl }}</h3>
             </div>
+            {% endif %}
             <div style="background:var(--bg-secondary);padding:1rem;border-radius:6px;">
               <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:.3rem;">Data</p>
               <h4 style="color:var(--text-primary);margin:0;">{{ tx.created_at.strftime('%d/%m/%Y') }}</h4>
