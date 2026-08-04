@@ -43,7 +43,7 @@
                     <div class="info-grid">
                         <div class="info-item">
                             <div class="info-label">Local de origem</div>
-                            <div class="info-value">{{ listing.city or '&mdash;' }}{% if listing.state %}/{{ listing.state }}{% endif %}</div>
+                            <div class="info-value">{{ listing.city or '—' }}{% if listing.state %}/{{ listing.state }}{% endif %}</div>
                         </div>
                         <div class="info-item">
                             <div class="info-label">Condição do material</div>
@@ -113,7 +113,7 @@
                     <div class="info-grid" style="margin-top:20px;">
                         <div class="info-item">
                             <div class="info-label">Material</div>
-                            <div class="info-value">{{ listing.material_type or '&mdash;' }}</div>
+                            <div class="info-value">{{ listing.material_type or '—' }}</div>
                         </div>
                         <div class="info-item">
                             <div class="info-label">Condição</div>
@@ -131,7 +131,7 @@
 
                     <div class="info-item" style="margin-top:10px;">
                         <div class="info-label">Localização</div>
-                        <div class="info-value">{{ listing.city or '&mdash;' }}{% if listing.state %} / {{ listing.state }}{% endif %}</div>
+                        <div class="info-value">{{ listing.city or '—' }}{% if listing.state %} / {{ listing.state }}{% endif %}</div>
                     </div>
 
                     <div style="display:flex; gap:14px; margin-top:14px; font-size:0.78rem; color:var(--text-muted);">
@@ -158,7 +158,7 @@
                         <div class="user-avatar" style="width:48px; height:48px; font-size:18px;">{{ listing.seller.display_name[0]|upper }}</div>
                         <div>
                             <a href="{{ url_for('seller_profile', uid=listing.seller.uid) }}" style="font-weight:600;">{{ listing.seller.name }}</a>
-                            <div style="font-size:0.8rem; color:var(--text-muted);">{{ listing.seller.city or '&mdash;' }}{% if listing.seller.state %}/{{ listing.seller.state }}{% endif %}</div>
+                            <div style="font-size:0.8rem; color:var(--text-muted);">{{ listing.seller.city or '—' }}{% if listing.seller.state %}/{{ listing.seller.state }}{% endif %}</div>
                             {% if listing.seller.is_verified %}
                             <span class="badge-status badge-active" style="margin-top:4px; display:inline-block;">Verificado</span>
                             {% endif %}
@@ -179,6 +179,7 @@
                     <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--accent);margin-bottom:8px;">Venda Imediata</div>
                     <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:14px;">Compre agora pelo valor anunciado, sem esperar negociação.</p>
                     <form method="POST" action="{{ url_for('buy_now', uid=listing.uid) }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="btn btn-primary btn-block btn-lg" onclick="return confirm('Confirmar compra por {{ listing.price|brl }}?')">
                             Comprar Agora &mdash; {{ listing.price|brl }}
                         </button>
@@ -193,6 +194,7 @@
             <div class="proposal-box">
                 <h3>Fazer Proposta</h3>
                 <form method="POST" action="{{ url_for('proposal_create', uid=listing.uid) }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="form-group">
                         <label class="form-label">Valor da Proposta (R$)</label>
                         <input type="number" name="amount" class="form-control" step="0.01" placeholder="0,00" required value="{{ listing.price }}">
@@ -234,7 +236,7 @@
 
 <script>
 function toggleFavorite(listingId) {
-    fetch('/favorite/' + listingId, {method: 'POST', headers: {'Content-Type': 'application/json'}})
+    fetch('/favorite/' + listingId, {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('meta[name=csrf-token]').content}})
     .then(r => r.json())
     .then(data => location.reload());
 }

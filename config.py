@@ -14,10 +14,26 @@ def _db_url():
         url = url.replace('postgres://', 'postgresql://', 1)
     return url or f'sqlite:///{os.path.join(BASE_DIR, "data", "zanini_scraps.db")}'
 
+_IS_PROD = bool(os.environ.get('DATABASE_URL'))
+
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'zanini-scraps-dev-key-2026')
+    SECRET_KEY = os.environ.get('SECRET_KEY', '')
+    if not SECRET_KEY:
+        if _IS_PROD:
+            raise RuntimeError('SECRET_KEY não configurada no ambiente de produção.')
+        SECRET_KEY = 'zanini-scraps-dev-key-2026'  # apenas dev local com SQLite
     SQLALCHEMY_DATABASE_URI = _db_url()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    # Cookies de sessão
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    SESSION_COOKIE_SECURE = _IS_PROD
+    REMEMBER_COOKIE_SECURE = _IS_PROD
+    REMEMBER_COOKIE_HTTPONLY = True
+
+    # Cron de liberação de escrow (token dedicado; se ausente, rota desabilitada)
+    CRON_TOKEN = os.environ.get('CRON_TOKEN', '')
 
     # Upload
     UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'uploads')

@@ -21,6 +21,16 @@ from modules import mercadopago as mp
 
 api = Blueprint('api', __name__, url_prefix='/api')
 
+
+@api.errorhandler(404)
+def _api_404(e):
+    return jsonify({'error': 'Não encontrado'}), 404
+
+
+@api.errorhandler(403)
+def _api_403(e):
+    return jsonify({'error': 'Sem permissão'}), 403
+
 ALLOWED_EXT = {'jpg', 'jpeg', 'png', 'webp'}
 
 
@@ -88,18 +98,20 @@ def _proposal_dict(p):
     }
 
 
-def _tx_dict(tx):
+def _tx_dict(tx, viewer_id=None):
     proposal = Proposal.query.get(tx.proposal_id) if tx.proposal_id else None
     listing = None
     if proposal:
         listing = proposal.listing
     elif tx.listing_id:
         listing = Listing.query.get(tx.listing_id)
+    eh_vendedor = viewer_id is None or viewer_id == tx.seller_id
     return {
         'id': tx.id, 'uid': tx.uid,
         'gross_amount': tx.gross_amount,
-        'commission': tx.commission,
-        'net_amount': tx.net_amount,
+        # comissão e líquido são assunto do vendedor — comprador não recebe
+        'commission': tx.commission if eh_vendedor else None,
+        'net_amount': tx.net_amount if eh_vendedor else None,
         'payment_status': tx.payment_status,
         'payment_method': tx.payment_method,
         'logistics_status': tx.logistics_status,
@@ -143,6 +155,10 @@ def api_register():
 
     if not email or not name or not password:
         return jsonify({'error': 'Preencha nome, e-mail e senha'}), 400
+    if '@' not in email or '.' not in email.split('@')[-1]:
+        return jsonify({'error': 'E-mail inválido'}), 400
+    if len(password) < 6:
+        return jsonify({'error': 'A senha deve ter pelo menos 6 caracteres'}), 400
     if User.query.filter_by(email=email).first():
         return jsonify({'error': 'E-mail já cadastrado'}), 409
     if role not in ('comprador', 'fornecedor'):
@@ -268,7 +284,7 @@ def api_listing_create():
         files = request.files.getlist('images') if request.files else []
         for i, f in enumerate(files):
             if f and _allowed(f.filename):
-                ext = f.filename.rsplit('.', 1)[1].lower()
+                ext = ''.join(c for c in f.filename.rsplit('.', 1)[-1].lower() if c.isalnum())
                 fname = f"{listing.uid}_{i}.{ext}"
                 upload_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'listings')
                 os.makedirs(upload_dir, exist_ok=True)
@@ -302,11 +318,17 @@ def api_proposal_create(listing_uid):
 
     data = request.get_json() or {}
     try:
+        _amt = float(data.get('amount', listing.price) or 0)
+    except (TypeError, ValueError):
+        _amt = 0
+    if _amt <= 0 or _amt > 10_000_000:
+        return jsonify({'error': 'Informe um valor válido para a proposta.'}), 400
+    try:
         proposal = Proposal(
             listing_id=listing.id,
             buyer_id=user.id,
             seller_id=listing.seller_id,
-            amount=float(data.get('amount', listing.price)),
+            amount=_amt,
             quantity=float(data.get('quantity', listing.quantity)),
             message=data.get('message', ''),
         )
@@ -342,10 +364,13 @@ def api_proposals():
 def api_proposal_accept(uid):
     user = User.query.get(int(get_jwt_identity()))
     proposal = Proposal.query.filter_by(uid=uid, seller_id=user.id, status='pending').first_or_404()
-    if proposal.listing.status != 'active':
+    if not proposal.amount or proposal.amount <= 0:
+        return jsonify({'error': 'Proposta sem valor válido.'}), 400
+    reservado = Listing.query.filter_by(id=proposal.listing_id, status='active').update({'status': 'reserved'})
+    if not reservado:
+        db.session.rollback()
         return jsonify({'error': 'Este lote não está mais disponível.'}), 400
     proposal.status = 'accepted'
-    proposal.listing.status = 'reserved'
     Proposal.query.filter(Proposal.listing_id == proposal.listing_id,
                           Proposal.id != proposal.id,
                           Proposal.status == 'pending').update({'status': 'rejected'})
@@ -369,7 +394,7 @@ def api_proposal_accept(uid):
         link=f'/transaction/{tx.uid}'
     ))
     db.session.commit()
-    return jsonify({'transaction': _tx_dict(tx)})
+    return jsonify({'transaction': _tx_dict(tx, user.id)})
 
 
 @api.route('/proposal/<uid>/reject', methods=['POST'])
@@ -391,6 +416,12 @@ def api_buy_now(uid):
     listing = Listing.query.filter_by(uid=uid, status='active', venda_imediata=True).first_or_404()
     if listing.seller_id == user.id:
         return jsonify({'error': 'Não pode comprar o próprio lote'}), 403
+    if not listing.price or listing.price <= 0:
+        return jsonify({'error': 'Lote sem preço válido.'}), 400
+    reservado = Listing.query.filter_by(id=listing.id, status='active').update({'status': 'reserved'})
+    if not reservado:
+        db.session.rollback()
+        return jsonify({'error': 'Este lote acabou de ser reservado por outro comprador.'}), 409
 
     commission = listing.price * current_app.config['COMMISSION_RATE']
     tx = Transaction(
@@ -404,9 +435,15 @@ def api_buy_now(uid):
         escrow_release_date=datetime.utcnow() + timedelta(days=current_app.config['ESCROW_RELEASE_DAYS'])
     )
     db.session.add(tx)
-    listing.status = 'reserved'
+    db.session.flush()
+    db.session.add(Notification(
+        user_id=listing.seller_id, type='transaction',
+        title='Compra imediata recebida!',
+        content=f'{user.name} comprou seu lote "{listing.title[:60]}".',
+        link=f'/transaction/{tx.uid}'
+    ))
     db.session.commit()
-    return jsonify({'transaction': _tx_dict(tx)}), 201
+    return jsonify({'transaction': _tx_dict(tx, user.id)}), 201
 
 
 # ─── TRANSACTIONS ─────────────────────────────────────────
@@ -418,7 +455,7 @@ def api_transactions():
     txs = Transaction.query.filter(
         (Transaction.buyer_id == user.id) | (Transaction.seller_id == user.id)
     ).order_by(Transaction.created_at.desc()).all()
-    return jsonify({'transactions': [_tx_dict(tx) for tx in txs]})
+    return jsonify({'transactions': [_tx_dict(tx, user.id) for tx in txs]})
 
 
 @api.route('/transaction/<uid>')
@@ -428,7 +465,7 @@ def api_transaction_detail(uid):
     tx = Transaction.query.filter_by(uid=uid).first_or_404()
     if user.id not in (tx.buyer_id, tx.seller_id):
         return jsonify({'error': 'Acesso negado'}), 403
-    return jsonify({'transaction': _tx_dict(tx)})
+    return jsonify({'transaction': _tx_dict(tx, user.id)})
 
 
 @api.route('/transaction/<uid>/pay', methods=['POST'])
@@ -457,20 +494,21 @@ def api_transaction_pay(uid):
             tx.payment_method = 'pix'
             tx.payment_status = 'awaiting_payment'
             db.session.commit()
-            return jsonify({'transaction': _tx_dict(tx)})
+            return jsonify({'transaction': _tx_dict(tx, user.id)})
         except Exception as e:
             db.session.rollback()
             return jsonify({'error': str(e)}), 500
     else:
         # modo teste
         tx.payment_status = 'escrow'
+        tx.escrow_release_date = datetime.utcnow() + timedelta(days=current_app.config['ESCROW_RELEASE_DAYS'])
         tx.payment_method = 'pix'
         tx.mp_qr_code = 'SIMULADO-QR-CODE'
         tx.mp_qr_base64 = ''
         if listing:
             listing.status = 'reserved'
         db.session.commit()
-        return jsonify({'transaction': _tx_dict(tx), 'test_mode': True})
+        return jsonify({'transaction': _tx_dict(tx, user.id), 'test_mode': True})
 
 
 @api.route('/transaction/<uid>/confirm-delivery', methods=['POST'])
@@ -492,7 +530,7 @@ def api_confirm_delivery(uid):
     from app import executar_repasse
     executar_repasse(tx)
     db.session.commit()
-    return jsonify({'transaction': _tx_dict(tx), 'repasse_status': tx.repasse_status})
+    return jsonify({'transaction': _tx_dict(tx, user.id), 'repasse_status': tx.repasse_status})
 
 
 # ─── PERFIL ──────────────────────────────────────────────

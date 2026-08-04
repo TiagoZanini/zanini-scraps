@@ -30,6 +30,7 @@
     </div>
 
     <form method="POST" action="{{ url_for('chat_thread_send', listing_uid=listing.uid, user_uid=other.uid) }}" style="display:flex;gap:.5rem;">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="text" name="content" placeholder="Escreva sua mensagem..." required autofocus
                style="flex:1;padding:.7rem 1rem;border:1px solid var(--border);border-radius:8px;background:var(--bg-primary);color:var(--text-primary);">
         <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Enviar</button>

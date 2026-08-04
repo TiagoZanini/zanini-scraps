@@ -21,7 +21,7 @@ with app.app_context():
     print('✅ Tabelas criadas.')
 
     if not User.query.filter_by(email=ADMIN_EMAIL).first():
-        admin = User(name=ADMIN_NAME, email=ADMIN_EMAIL, role='admin', is_admin=True,
+        admin = User(name=ADMIN_NAME, email=ADMIN_EMAIL, role='admin',
                      document_type='cnpj', document='00.000.000/0001-00',
                      city='Porto Alegre', state='RS')
         admin.set_password(ADMIN_PASSWORD)

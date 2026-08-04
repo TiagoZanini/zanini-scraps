@@ -940,3 +940,13 @@ tr:hover td { background: var(--bg-2); }
     .form-row { flex-direction: column; gap: 0; }
     .info-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Badges de estado que faltavam ── */
+.badge-completed { background: rgba(52,211,153,.15); color: var(--success); }
+.badge-failed    { background: rgba(248,113,113,.15); color: var(--danger); }
+.badge-new       { background: var(--accent); color: var(--bg-0); }
+
+/* ── Utilitários de espaçamento usados nos templates ── */
+.mb-3 { margin-bottom: 1rem; }
+.mb-4 { margin-bottom: 1.5rem; }
+.pb-3 { padding-bottom: 1rem; }

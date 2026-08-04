@@ -7,6 +7,7 @@
     </div>
     <div style="max-width:720px;">
         <form method="POST" enctype="multipart/form-data">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="card" style="margin-bottom:24px;">
                 <div class="card-header">Informações do Material</div>
                 <div class="card-body">
@@ -115,6 +116,10 @@
                     {% endif %}
                     <input type="file" name="images" class="form-control" accept="image/*" multiple>
                 </div>
+            </div>
+            <div class="form-check" style="margin-bottom:12px;">
+                <input type="checkbox" name="has_invoice" id="has_invoice" value="1" {{ 'checked' if listing.has_invoice }}>
+                <label for="has_invoice" style="font-weight:600;">Possuo nota fiscal de origem deste material</label>
             </div>
             <div class="form-check" style="margin-bottom:20px;padding:12px;background:var(--bg-2);border-radius:8px;border:1px solid var(--bg-3);">
                 <input type="checkbox" name="venda_imediata" id="venda_imediata" value="1" {{ 'checked' if listing.venda_imediata }}>

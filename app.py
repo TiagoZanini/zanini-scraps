@@ -16,6 +16,7 @@ from werkzeug.utils import secure_filename
 
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
+from flask_wtf import CSRFProtect
 
 from config import Config
 from modules.models import (db, User, Category, Listing, ListingImage,
@@ -31,6 +32,8 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=30)
 mail = Mail(app)
 jwt = JWTManager(app)
 CORS(app, resources={r'/api/*': {'origins': '*'}})
+csrf = CSRFProtect(app)
+app.config['WTF_CSRF_TIME_LIMIT'] = None  # token vale pela sessão inteira
 
 # ── Filtro Jinja: formato BRL (R$ 1.234,56) ──
 def _brl(value):
@@ -83,29 +86,11 @@ app.jinja_env.filters['status_pt'] = _status_pt
 def brl(value):
     return _brl(value)
 
-# ── Corrige encoding Windows (double-UTF-8) e força charset ──
-import re as _re
-def _fix_mojibake(text):
-    """Reverte double-UTF-8: 'Ã§' → 'ç', 'Ã£' → 'ã', etc."""
-    try:
-        return text.encode('latin-1').decode('utf-8')
-    except Exception:
-        return text
-
+# ── Força charset UTF-8 no HTML ──
 @app.after_request
-def fix_encoding(response):
-    if not response.content_type.startswith('text/html'):
-        return response
-    try:
-        raw = response.get_data(as_text=False)
-        text = raw.decode('utf-8', errors='replace')
-        # Detecta mojibake típico: Ã seguido de char latin1 especial
-        if _re.search(r'Ã[§£³©¡ºÀ-ÿ]', text):
-            text = _fix_mojibake(text)
-            response.set_data(text.encode('utf-8'))
-    except Exception:
-        pass
-    response.headers['Content-Type'] = 'text/html; charset=utf-8'
+def force_charset(response):
+    if response.content_type.startswith('text/html'):
+        response.headers['Content-Type'] = 'text/html; charset=utf-8'
     return response
 
 def send_email(to, subject, body_html):
@@ -129,6 +114,7 @@ os.makedirs(os.path.join(os.path.dirname(__file__), 'data'), exist_ok=True)
 
 db.init_app(app)
 app.register_blueprint(api_blueprint)
+csrf.exempt(api_blueprint)  # API usa Bearer JWT, sem cookies
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -152,7 +138,13 @@ def admin_required(f):
 
 
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+    return '.' in filename and safe_ext(filename) in app.config['ALLOWED_EXTENSIONS']
+
+
+def safe_ext(filename):
+    """Extensão sanitizada: só letras/números minúsculos."""
+    ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+    return ''.join(c for c in ext if c.isalnum())
 
 
 def executar_repasse(tx):
@@ -161,6 +153,8 @@ def executar_repasse(tx):
     Atualiza tx.repasse_status: 'enviado', 'falhou' ou 'manual'.
     Não faz commit — chame db.session.commit() após.
     """
+    if tx.repasse_status not in (None, '', 'pendente'):
+        return  # idempotência: nunca repassar duas vezes
     seller = User.query.get(tx.seller_id)
     if not seller or not seller.pix_key:
         tx.repasse_status = 'manual'
@@ -220,7 +214,10 @@ def login():
         user = User.query.filter_by(email=email).first()
         if user and user.check_password(password):
             login_user(user, remember=True)
-            next_page = request.args.get('next')
+            next_page = request.args.get('next', '')
+            # só redireciona para caminhos internos (evita open redirect)
+            if not next_page.startswith('/') or next_page.startswith('//'):
+                next_page = None
             flash(f'Bem-vindo, {user.display_name}!', 'success')
             return redirect(next_page or url_for('dashboard'))
         flash('E-mail ou senha incorretos.', 'danger')
@@ -242,6 +239,13 @@ def register():
         city = request.form.get('city', '').strip()
         state = request.form.get('state', '').strip()
 
+        if not name or '@' not in email or '.' not in email.split('@')[-1]:
+            flash('Preencha nome e um e-mail válido.', 'danger')
+            return render_template('auth/register.html')
+        if len(password) < 6:
+            flash('A senha deve ter pelo menos 6 caracteres.', 'danger')
+            return render_template('auth/register.html')
+
         if User.query.filter_by(email=email).first():
             flash('E-mail já cadastrado.', 'danger')
             return render_template('auth/register.html')
@@ -252,7 +256,7 @@ def register():
 
         user = User(
             name=name, email=email, role=role,
-            document_type=document_type, document=document,
+            document_type=document_type, document=document or None,
             phone=phone, city=city, state=state
         )
         user.set_password(password)
@@ -417,6 +421,9 @@ def listing_create():
 
         status_values = request.form.getlist('status')
         status_final = 'draft' if 'draft' in status_values else 'active'
+        if _num('price') <= 0:
+            flash('Informe um preço válido para o anúncio.', 'danger')
+            return render_template('listings/create.html')
         listing = Listing(
             seller_id=current_user.id,
             title=request.form.get('title', '').strip(),
@@ -449,7 +456,7 @@ def listing_create():
         files = request.files.getlist('images')
         for i, f in enumerate(files):
             if f and allowed_file(f.filename):
-                ext = f.filename.rsplit('.', 1)[1].lower()
+                ext = safe_ext(f.filename)
                 fname = f"{listing.uid}_{i}.{ext}"
                 fpath = os.path.join(app.config['UPLOAD_FOLDER'], 'listings', fname)
                 f.save(fpath)
@@ -476,6 +483,15 @@ def listing_create():
 def listing_edit(uid):
     listing = Listing.query.filter_by(uid=uid, seller_id=current_user.id).first_or_404()
     if request.method == 'POST':
+        # lote com transação em andamento não pode ser alterado (evita revenda/alteração de preço pós-acordo)
+        tx_ativa = Transaction.query.filter(
+            ((Transaction.listing_id == listing.id) |
+             (Transaction.proposal_id.in_(db.session.query(Proposal.id).filter_by(listing_id=listing.id)))),
+            Transaction.payment_status.in_(['pending', 'awaiting_payment', 'escrow'])
+        ).first()
+        if tx_ativa or listing.status in ('reserved', 'sold'):
+            flash('Este lote tem uma negociação em andamento e não pode ser editado.', 'danger')
+            return redirect(url_for('listing_detail', uid=listing.uid))
         listing.title = request.form.get('title', listing.title)
         listing.description = request.form.get('description', listing.description)
         listing.category_id = request.form.get('category_id') or listing.category_id
@@ -494,13 +510,15 @@ def listing_edit(uid):
         listing.observations = request.form.get('observations', listing.observations)
         listing.who_picks_up = request.form.get('who_picks_up', listing.who_picks_up)
         listing.venda_imediata = bool(request.form.get('venda_imediata'))
-        listing.status = request.form.get('status', listing.status)
+        novo_status = request.form.get('status', listing.status)
+        if novo_status in ('active', 'draft'):   # nunca aceitar status arbitrário do form
+            listing.status = novo_status
 
         # Novas imagens
         files = request.files.getlist('images')
         for i, f in enumerate(files):
             if f and f.filename and allowed_file(f.filename):
-                ext = f.filename.rsplit('.', 1)[1].lower()
+                ext = safe_ext(f.filename)
                 fname = f"{listing.uid}_{datetime.utcnow().timestamp()}_{i}.{ext}"
                 fpath = os.path.join(app.config['UPLOAD_FOLDER'], 'listings', fname)
                 f.save(fpath)
@@ -523,6 +541,18 @@ def listing_edit(uid):
 @login_required
 def listing_delete(uid):
     listing = Listing.query.filter_by(uid=uid, seller_id=current_user.id).first_or_404()
+    tem_tx = Transaction.query.filter(
+        (Transaction.listing_id == listing.id) |
+        (Transaction.proposal_id.in_(db.session.query(Proposal.id).filter_by(listing_id=listing.id)))
+    ).first()
+    if tem_tx:
+        flash('Este lote tem transações vinculadas e não pode ser excluído. Ele foi pausado (rascunho).', 'warning')
+        listing.status = 'draft'
+        db.session.commit()
+        return redirect(url_for('dashboard'))
+    # limpa referências sem cascade antes de excluir
+    Favorite.query.filter_by(listing_id=listing.id).delete()
+    Message.query.filter_by(listing_id=listing.id).update({'listing_id': None})
     db.session.delete(listing)
     db.session.commit()
     flash('Anúncio removido.', 'info')
@@ -556,7 +586,14 @@ def proposal_create(uid):
         flash('Você não pode fazer proposta no próprio anúncio.', 'warning')
         return redirect(url_for('listing_detail', uid=uid))
 
-    amount = float(str(request.form.get('amount', 0)).replace('.', '').replace(',', '.') if ',' in str(request.form.get('amount', '')) else request.form.get('amount', 0) or 0)
+    try:
+        raw = str(request.form.get('amount', 0) or 0)
+        amount = float(raw.replace('.', '').replace(',', '.') if ',' in raw else raw)
+    except ValueError:
+        amount = 0
+    if amount <= 0 or amount > 10_000_000:
+        flash('Informe um valor válido para a proposta.', 'danger')
+        return redirect(url_for('listing_detail', uid=uid))
     quantity = float(request.form.get('quantity', listing.quantity) or listing.quantity)
     message = request.form.get('message', '').strip()
 
@@ -614,11 +651,16 @@ def proposal_detail(uid):
 @login_required
 def proposal_accept(uid):
     proposal = Proposal.query.filter_by(uid=uid, seller_id=current_user.id, status='pending').first_or_404()
-    if proposal.listing.status != 'active':
+    if not proposal.amount or proposal.amount <= 0:
+        flash('Proposta sem valor válido — rejeite-a.', 'danger')
+        return redirect(url_for('proposal_detail', uid=uid))
+    # reserva atômica: só prossegue se o lote ainda estiver ativo (evita corrida)
+    reservado = Listing.query.filter_by(id=proposal.listing_id, status='active').update({'status': 'reserved'})
+    if not reservado:
+        db.session.rollback()
         flash('Este lote não está mais disponível.', 'danger')
         return redirect(url_for('proposal_detail', uid=uid))
     proposal.status = 'accepted'
-    proposal.listing.status = 'reserved'
     Proposal.query.filter(Proposal.listing_id == proposal.listing_id,
                           Proposal.id != proposal.id,
                           Proposal.status == 'pending').update({'status': 'rejected'})
@@ -660,7 +702,12 @@ def proposal_accept(uid):
 @app.route('/proposal/<uid>/reject', methods=['POST'])
 @login_required
 def proposal_reject(uid):
-    proposal = Proposal.query.filter_by(uid=uid, seller_id=current_user.id, status='pending').first_or_404()
+    # vendedor rejeita proposta pendente OU comprador rejeita contraproposta
+    proposal = Proposal.query.filter(
+        Proposal.uid == uid,
+        ((Proposal.seller_id == current_user.id) & (Proposal.status == 'pending')) |
+        ((Proposal.buyer_id == current_user.id) & (Proposal.status == 'countered'))
+    ).first_or_404()
     proposal.status = 'rejected'
     db.session.commit()
     flash('Proposta recusada.', 'info')
@@ -671,8 +718,15 @@ def proposal_reject(uid):
 @login_required
 def proposal_counter(uid):
     proposal = Proposal.query.filter_by(uid=uid, seller_id=current_user.id, status='pending').first_or_404()
+    try:
+        counter_amount = float(str(request.form.get('counter_amount', 0)).replace(',', '.'))
+    except ValueError:
+        counter_amount = 0
+    if counter_amount <= 0:
+        flash('Informe um valor válido para a contraproposta.', 'danger')
+        return redirect(url_for('proposal_detail', uid=uid))
     proposal.status = 'countered'
-    proposal.counter_amount = float(request.form.get('counter_amount', 0))
+    proposal.counter_amount = counter_amount
     proposal.counter_message = request.form.get('counter_message', '').strip()
     db.session.commit()
     flash('Contraproposta enviada.', 'success')
@@ -683,12 +737,17 @@ def proposal_counter(uid):
 @login_required
 def proposal_accept_counter(uid):
     proposal = Proposal.query.filter_by(uid=uid, buyer_id=current_user.id, status='countered').first_or_404()
-    if proposal.listing.status != 'active':
+    if not proposal.counter_amount or proposal.counter_amount <= 0:
+        flash('Contraproposta sem valor válido.', 'danger')
+        return redirect(url_for('proposal_detail', uid=uid))
+    # reserva atômica: só prossegue se o lote ainda estiver ativo (evita corrida)
+    reservado = Listing.query.filter_by(id=proposal.listing_id, status='active').update({'status': 'reserved'})
+    if not reservado:
+        db.session.rollback()
         flash('Este lote não está mais disponível.', 'danger')
         return redirect(url_for('proposal_detail', uid=uid))
     proposal.status = 'accepted'
     proposal.amount = proposal.counter_amount
-    proposal.listing.status = 'reserved'
     Proposal.query.filter(Proposal.listing_id == proposal.listing_id,
                           Proposal.id != proposal.id,
                           Proposal.status == 'pending').update({'status': 'rejected'})
@@ -937,7 +996,12 @@ def schedule_pickup(uid):
         abort(403)
     pickup_date = request.form.get('pickup_date')
     if pickup_date:
-        tx.pickup_date = datetime.strptime(pickup_date, '%Y-%m-%dT%H:%M')
+        try:
+            fmt = '%Y-%m-%dT%H:%M' if 'T' in pickup_date else '%Y-%m-%d'
+            tx.pickup_date = datetime.strptime(pickup_date, fmt)
+        except ValueError:
+            flash('Data inválida.', 'danger')
+            return redirect(url_for('transaction_detail', uid=uid))
         tx.logistics_status = 'scheduled'
         db.session.commit()
         flash('Retirada agendada!', 'success')
@@ -994,6 +1058,7 @@ def notifications():
 
 # ─── WEBHOOK MERCADO PAGO ───
 @app.route('/mp-webhook', methods=['POST'])
+@csrf.exempt
 def mp_webhook():
     """
     Recebe notificações do Mercado Pago e atualiza o status do pagamento automaticamente.
@@ -1001,9 +1066,9 @@ def mp_webhook():
     """
     data = request.get_json(silent=True) or {}
     topic = data.get('type') or request.args.get('topic', '')
-    resource_id = data.get('data', {}).get('id') or request.args.get('id', '')
+    resource_id = str(data.get('data', {}).get('id') or request.args.get('id', ''))
 
-    if topic not in ('payment', 'merchant_order') or not resource_id:
+    if topic not in ('payment', 'merchant_order') or not resource_id.isdigit():
         return jsonify({'status': 'ignored'}), 200
 
     if not mp.verificar_webhook(resource_id,
@@ -1142,9 +1207,14 @@ def search_suggestions():
 
 
 @app.route('/api/freight-estimate', methods=['POST'])
+@csrf.exempt
 def freight_estimate():
-    distance_km = float(request.json.get('distance_km', 0))
-    volume_m3 = float(request.json.get('volume_m3', 1))
+    data = request.get_json(silent=True) or {}
+    try:
+        distance_km = float(data.get('distance_km', 0))
+        volume_m3 = float(data.get('volume_m3', 1))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Parâmetros inválidos'}), 400
     rate = app.config['FREIGHT_RATE_PER_KM']
     cost = distance_km * rate * max(1, volume_m3 * 0.3)
     return jsonify({'estimated_cost': round(cost, 2), 'distance_km': distance_km})
@@ -1157,6 +1227,15 @@ def buy_now(uid):
     listing = Listing.query.filter_by(uid=uid, status='active', venda_imediata=True).first_or_404()
     if listing.seller_id == current_user.id:
         flash('Você não pode comprar seu próprio lote.', 'danger')
+        return redirect(url_for('listing_detail', uid=uid))
+    if not listing.price or listing.price <= 0:
+        flash('Este lote está sem preço válido.', 'danger')
+        return redirect(url_for('listing_detail', uid=uid))
+    # reserva atômica (evita duas compras simultâneas)
+    reservado = Listing.query.filter_by(id=listing.id, status='active').update({'status': 'reserved'})
+    if not reservado:
+        db.session.rollback()
+        flash('Este lote acabou de ser reservado por outro comprador.', 'danger')
         return redirect(url_for('listing_detail', uid=uid))
 
     commission = listing.price * app.config['COMMISSION_RATE']
@@ -1171,14 +1250,14 @@ def buy_now(uid):
         escrow_release_date=datetime.utcnow() + timedelta(days=app.config['ESCROW_RELEASE_DAYS'])
     )
     db.session.add(tx)
-    listing.status = 'reserved'
+    db.session.flush()
 
     notif = Notification(
         user_id=listing.seller_id,
         type='transaction',
         title='Compra imediata recebida!',
         content=f'{current_user.name} comprou seu lote "{listing.title[:60]}" por {brl(listing.price)}.',
-        link='#'
+        link=f'/transaction/{tx.uid}'
     )
     db.session.add(notif)
     db.session.commit()
@@ -1196,9 +1275,12 @@ def cron_release_escrow():
     Chamar via Railway Cron: GET /cron/release-escrow (a cada hora).
     Protegido por token simples no header ou query string.
     """
-    token = request.args.get('token') or request.headers.get('X-Cron-Token', '')
-    cron_secret = app.config.get('SECRET_KEY', '')[:16]
-    if token != cron_secret:
+    import hmac as _hmac
+    cron_secret = app.config.get('CRON_TOKEN', '')
+    if not cron_secret:
+        abort(404)  # rota desabilitada até configurar CRON_TOKEN no ambiente
+    token = request.headers.get('X-Cron-Token', '') or request.args.get('token', '')
+    if not _hmac.compare_digest(token, cron_secret):
         abort(403)
 
     now = datetime.utcnow()

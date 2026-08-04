@@ -62,49 +62,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Mobile menu
-    const mobileBtn = document.querySelector('.mobile-menu-btn');
-    if (mobileBtn) {
-        mobileBtn.addEventListener('click', function() {
-            const nav = document.querySelector('.navbar-nav');
-            nav.style.display = nav.style.display === 'flex' ? 'none' : 'flex';
-            nav.style.position = 'absolute';
-            nav.style.top = '64px';
-            nav.style.left = '0';
-            nav.style.right = '0';
-            nav.style.background = 'var(--bg-secondary)';
-            nav.style.flexDirection = 'column';
-            nav.style.padding = '16px';
-            nav.style.borderBottom = '1px solid var(--border)';
-            nav.style.zIndex = '99';
-        });
-    }
+    // Mobile menu: controlado só pela classe .mobile-show (toggle no onclick do botão em base.html)
 
-    // Image preview on listing create
-    const imageInput = document.querySelector('input[name="images"]');
-    if (imageInput) {
-        imageInput.addEventListener('change', function() {
-            const preview = document.getElementById('image-preview');
-            if (!preview) {
-                const p = document.createElement('div');
-                p.id = 'image-preview';
-                p.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;';
-                this.parentElement.appendChild(p);
-            }
-            const container = document.getElementById('image-preview');
-            container.innerHTML = '';
-            Array.from(this.files).forEach(file => {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    img.style.cssText = 'width:100px;height:75px;object-fit:cover;border-radius:6px;border:1px solid var(--border);';
-                    container.appendChild(img);
-                };
-                reader.readAsDataURL(file);
-            });
-        });
-    }
+    // Preview de imagens: gerenciado pelo script próprio de listings/create.html (#preview)
 
     // Auto-scroll chat
     const chatContainer = document.querySelector('.chat-container');

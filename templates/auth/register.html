@@ -8,6 +8,7 @@
         <h1>Criar Conta</h1>
         <p class="subtitle">Comece a comprar e vender sobras industriais</p>
         <form method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group">
                 <label class="form-label">Nome / Razão Social</label>
                 <input type="text" name="name" class="form-control" placeholder="Nome da empresa ou seu nome" required>
