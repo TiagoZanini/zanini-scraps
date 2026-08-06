@@ -282,18 +282,19 @@ def api_listing_create():
         db.session.flush()
 
         files = request.files.getlist('images') if request.files else []
-        for i, f in enumerate(files):
+        for i, f in enumerate(files[:5]):
             if f and _allowed(f.filename):
-                ext = ''.join(c for c in f.filename.rsplit('.', 1)[-1].lower() if c.isalnum())
-                fname = f"{listing.uid}_{i}.{ext}"
-                upload_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'listings')
-                os.makedirs(upload_dir, exist_ok=True)
-                f.save(os.path.join(upload_dir, fname))
-                db.session.add(ListingImage(
-                    listing_id=listing.id,
-                    path=f'/static/uploads/listings/{fname}',
+                raw = f.read()
+                if not raw or len(raw) > 16 * 1024 * 1024:
+                    continue
+                img = ListingImage(
+                    listing_id=listing.id, path='', data=raw,
+                    mimetype=f.mimetype if (f.mimetype or '').startswith('image/') else 'image/jpeg',
                     is_main=(i == 0), order=i
-                ))
+                )
+                db.session.add(img)
+                db.session.flush()
+                img.path = f'/media/{img.id}'
 
         db.session.commit()
         return jsonify({'listing': _listing_dict(listing, detail=True)}), 201

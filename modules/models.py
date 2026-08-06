@@ -161,6 +161,8 @@ class ListingImage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     listing_id = db.Column(db.Integer, db.ForeignKey('listings.id'), nullable=False)
     path = db.Column(db.String(255), nullable=False)
+    data = db.Column(db.LargeBinary)          # bytes da imagem (persistente — o disco do Railway é efêmero)
+    mimetype = db.Column(db.String(40))
     is_main = db.Column(db.Boolean, default=False)
     order = db.Column(db.Integer, default=0)
 

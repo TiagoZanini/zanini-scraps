@@ -147,6 +147,25 @@ def safe_ext(filename):
     return ''.join(c for c in ext if c.isalnum())
 
 
+def salvar_imagem_listing(listing, f, is_main, order):
+    """Guarda a imagem no banco (o disco do Railway é efêmero) e retorna o ListingImage."""
+    data = f.read()
+    if not data or len(data) > 16 * 1024 * 1024:
+        return None
+    img = ListingImage(
+        listing_id=listing.id,
+        path='',
+        data=data,
+        mimetype=f.mimetype if (f.mimetype or '').startswith('image/') else f'image/{safe_ext(f.filename) or "jpeg"}',
+        is_main=is_main,
+        order=order,
+    )
+    db.session.add(img)
+    db.session.flush()
+    img.path = f'/media/{img.id}'
+    return img
+
+
 def executar_repasse(tx):
     """
     Tenta enviar PIX ao vendedor via MP.
@@ -452,21 +471,11 @@ def listing_create():
         db.session.add(listing)
         db.session.flush()
 
-        # Upload de imagens
+        # Upload de imagens (armazenadas no banco — persistem entre deploys)
         files = request.files.getlist('images')
-        for i, f in enumerate(files):
-            if f and allowed_file(f.filename):
-                ext = safe_ext(f.filename)
-                fname = f"{listing.uid}_{i}.{ext}"
-                fpath = os.path.join(app.config['UPLOAD_FOLDER'], 'listings', fname)
-                f.save(fpath)
-                img = ListingImage(
-                    listing_id=listing.id,
-                    path=f'/static/uploads/listings/{fname}',
-                    is_main=(i == 0),
-                    order=i
-                )
-                db.session.add(img)
+        for i, f in enumerate(files[:5]):
+            if f and f.filename and allowed_file(f.filename):
+                salvar_imagem_listing(listing, f, is_main=(i == 0), order=i)
 
         db.session.commit()
         if status_final == 'draft':
@@ -514,21 +523,12 @@ def listing_edit(uid):
         if novo_status in ('active', 'draft'):   # nunca aceitar status arbitrário do form
             listing.status = novo_status
 
-        # Novas imagens
+        # Novas imagens (armazenadas no banco)
         files = request.files.getlist('images')
-        for i, f in enumerate(files):
+        base_order = listing.images.count()
+        for i, f in enumerate(files[:5]):
             if f and f.filename and allowed_file(f.filename):
-                ext = safe_ext(f.filename)
-                fname = f"{listing.uid}_{datetime.utcnow().timestamp()}_{i}.{ext}"
-                fpath = os.path.join(app.config['UPLOAD_FOLDER'], 'listings', fname)
-                f.save(fpath)
-                img = ListingImage(
-                    listing_id=listing.id,
-                    path=f'/static/uploads/listings/{fname}',
-                    is_main=False,
-                    order=listing.images.count() + i
-                )
-                db.session.add(img)
+                salvar_imagem_listing(listing, f, is_main=(base_order + i == 0), order=base_order + i)
 
         db.session.commit()
         flash('Anúncio atualizado!', 'success')
@@ -1364,6 +1364,18 @@ def favorites_list():
     return render_template('listings/favorites.html', listings=listings)
 
 
+# ─── Mídia (imagens no banco) ───
+@app.route('/media/<int:img_id>')
+def media_image(img_id):
+    from flask import Response
+    img = ListingImage.query.get_or_404(img_id)
+    if not img.data:
+        return redirect('/static/img/no-image.svg')
+    resp = Response(img.data, mimetype=img.mimetype or 'image/jpeg')
+    resp.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+    return resp
+
+
 # ─── Páginas institucionais ───
 @app.route('/ajuda')
 def page_ajuda():
@@ -1407,6 +1419,8 @@ _AUTO_MIGRATE_STMTS = [
     "ALTER TABLE users        ADD COLUMN IF NOT EXISTS pix_key             VARCHAR(150)",
     "ALTER TABLE users        ADD COLUMN IF NOT EXISTS pix_key_type        VARCHAR(20)",
     "ALTER TABLE messages     ADD COLUMN IF NOT EXISTS listing_id          INTEGER      REFERENCES listings(id)",
+    "ALTER TABLE listing_images ADD COLUMN IF NOT EXISTS data              BYTEA",
+    "ALTER TABLE listing_images ADD COLUMN IF NOT EXISTS mimetype          VARCHAR(40)",
 ]
 
 _DEFAULT_CATEGORIES = [
