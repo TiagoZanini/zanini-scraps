@@ -68,6 +68,7 @@ _STATUS_PT = {
     # pagamento
     'awaiting_payment': 'Aguardando pagamento', 'escrow': 'Pago — em custódia',
     'released': 'Concluída', 'refunded': 'Reembolsada', 'disputed': 'Em disputa',
+    'cancelled': 'Cancelada',
     # logística
     'scheduled': 'Agendado', 'in_transit': 'Em trânsito',
     'delivered': 'Entregue', 'confirmed': 'Entrega confirmada',
@@ -956,6 +957,35 @@ def transaction_pay(uid):
             listing.status = 'reserved'
     db.session.commit()
     flash(f'[MODO TESTE] Pagamento via {method.upper()} simulado.', 'warning')
+    return redirect(url_for('transaction_detail', uid=uid))
+
+
+@app.route('/transaction/<uid>/cancel', methods=['POST'])
+@login_required
+def transaction_cancel(uid):
+    """Cancela negociação não paga — libera o lote de volta ao marketplace."""
+    tx = Transaction.query.filter(
+        Transaction.uid == uid,
+        (Transaction.buyer_id == current_user.id) | (Transaction.seller_id == current_user.id),
+        Transaction.payment_status.in_(['pending', 'awaiting_payment'])
+    ).first_or_404()
+
+    tx.payment_status = 'cancelled'
+    listing = tx.listing_ref
+    if listing and listing.status == 'reserved':
+        listing.status = 'active'
+    if tx.proposal:
+        tx.proposal.status = 'rejected'
+
+    outro = tx.seller_id if current_user.id == tx.buyer_id else tx.buyer_id
+    db.session.add(Notification(
+        user_id=outro, type='transaction',
+        title='Negociação cancelada',
+        content=f'{current_user.name} cancelou a negociação de "{tx.display_title[:50]}". O lote voltou ao marketplace.',
+        link=f'/transaction/{tx.uid}'
+    ))
+    db.session.commit()
+    flash('Negociação cancelada. O lote voltou a ficar disponível no marketplace.', 'info')
     return redirect(url_for('transaction_detail', uid=uid))
 
 

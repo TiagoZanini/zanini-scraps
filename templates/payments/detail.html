@@ -148,6 +148,20 @@
       </div>
       {% endif %}
 
+      {% if tx.payment_status in ['pending', 'awaiting_payment'] %}
+      <div class="card" style="margin-top:2rem;border:1px solid var(--danger);">
+        <div class="card-body">
+          <p style="color:var(--text-secondary);font-size:.9rem;margin-bottom:.8rem;">
+            {% if current_user.id == tx.buyer_id %}Desistiu da compra? Cancele para liberar o lote.{% else %}O comprador não pagou? Cancele a negociação para o lote voltar ao marketplace.{% endif %}
+          </p>
+          <form action="{{ url_for('transaction_cancel', uid=tx.uid) }}" method="POST" onsubmit="return confirm('Cancelar esta negociação? O lote volta a ficar disponível.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" style="background:transparent;border:1px solid var(--danger);color:var(--danger);padding:.5rem 1.2rem;border-radius:6px;cursor:pointer;">Cancelar negociação</button>
+          </form>
+        </div>
+      </div>
+      {% endif %}
+
       <!-- Logística & Escrow -->
       <div class="card" style="margin-top:2rem;">
         <div class="card-header">

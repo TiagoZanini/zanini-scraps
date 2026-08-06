@@ -4,12 +4,16 @@
 <div class="container page-content">
     <div class="page-header">
         <h1 class="page-title">Marketplace</h1>
-        <p class="page-subtitle">Sobras de obra e materiais de construção civil de todo o Brasil</p>
+        <p class="page-subtitle">Sobras, excedentes e materiais reaproveitáveis de todo o Brasil</p>
     </div>
     <div class="two-col">
         <!-- Filters -->
         <aside class="filters-sidebar">
-            <form method="GET" action="{{ url_for('marketplace') }}">
+            <button type="button" id="filtros-toggle" class="btn btn-secondary btn-block" style="display:none;margin-bottom:12px;"
+                    onclick="var f=document.getElementById('filtros-form');var aberto=f.style.display!=='none';f.style.display=aberto?'none':'block';this.textContent=aberto?'☰ Filtros e ordenação':'✕ Fechar filtros';">
+                ☰ Filtros e ordenação
+            </button>
+            <form method="GET" action="{{ url_for('marketplace') }}" id="filtros-form">
                 <div class="filter-section">
                     <div class="filter-title">Buscar</div>
                     <input type="text" name="q" class="form-control" placeholder="Material, título..." value="{{ request.args.get('q', '') }}">
@@ -65,6 +69,20 @@
                 <a href="{{ url_for('marketplace') }}" class="btn btn-secondary btn-block" style="margin-top:8px;">Limpar</a>
             </form>
         </aside>
+
+        <script>
+        (function(){
+            var mq = window.matchMedia('(max-width: 768px)');
+            var btn = document.getElementById('filtros-toggle');
+            var form = document.getElementById('filtros-form');
+            function ajustar(){
+                if (mq.matches) { btn.style.display = 'block'; form.style.display = 'none'; }
+                else { btn.style.display = 'none'; form.style.display = 'block'; }
+            }
+            ajustar();
+            mq.addEventListener ? mq.addEventListener('change', ajustar) : mq.addListener(ajustar);
+        })();
+        </script>
 
         <!-- Results -->
         <div>

@@ -512,6 +512,32 @@ def api_transaction_pay(uid):
         return jsonify({'transaction': _tx_dict(tx, user.id), 'test_mode': True})
 
 
+@api.route('/transaction/<uid>/cancel', methods=['POST'])
+@jwt_required()
+def api_transaction_cancel(uid):
+    user = User.query.get(int(get_jwt_identity()))
+    tx = Transaction.query.filter(
+        Transaction.uid == uid,
+        (Transaction.buyer_id == user.id) | (Transaction.seller_id == user.id),
+        Transaction.payment_status.in_(['pending', 'awaiting_payment'])
+    ).first_or_404()
+    tx.payment_status = 'cancelled'
+    listing = tx.listing_ref
+    if listing and listing.status == 'reserved':
+        listing.status = 'active'
+    if tx.proposal:
+        tx.proposal.status = 'rejected'
+    outro = tx.seller_id if user.id == tx.buyer_id else tx.buyer_id
+    db.session.add(Notification(
+        user_id=outro, type='transaction',
+        title='Negociação cancelada',
+        content=f'{user.name} cancelou a negociação. O lote voltou ao marketplace.',
+        link=f'/transaction/{tx.uid}'
+    ))
+    db.session.commit()
+    return jsonify({'transaction': _tx_dict(tx, user.id)})
+
+
 @api.route('/transaction/<uid>/confirm-delivery', methods=['POST'])
 @jwt_required()
 def api_confirm_delivery(uid):
