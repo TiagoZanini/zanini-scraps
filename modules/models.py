@@ -231,6 +231,10 @@ class Transaction(db.Model):
     mp_boleto_url  = db.Column(db.String(500))
     mp_barcode     = db.Column(db.String(200))
 
+    # Asaas
+    asaas_payment_id  = db.Column(db.String(40))
+    asaas_invoice_url = db.Column(db.String(300))
+
     # Logística
     logistics_status = db.Column(db.String(20), default='pending')  # pending, scheduled, in_transit, delivered, confirmed
     pickup_date = db.Column(db.DateTime)

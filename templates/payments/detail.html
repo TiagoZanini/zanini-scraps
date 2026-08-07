@@ -56,6 +56,17 @@
           <h5 style="color:var(--text-primary);margin:0;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> Escolha a Forma de Pagamento</h5>
         </div>
         <div class="card-body">
+          {% if asaas_enabled %}
+          <p style="color:var(--text-secondary);margin-bottom:1rem;">Pague com PIX ou cartão de crédito:</p>
+          <form action="{{ url_for('transaction_pay', uid=tx.uid) }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="method" value="pix">
+            <button type="submit" class="btn btn-primary btn-block btn-lg">Gerar cobrança — PIX ou Cartão</button>
+          </form>
+          {% if not current_user.document %}
+          <p style="color:var(--warning);font-size:.85rem;margin-top:.8rem;">⚠ Cadastre seu CPF/CNPJ no <a href="{{ url_for('profile') }}" style="color:var(--warning);">perfil</a> antes de pagar.</p>
+          {% endif %}
+          {% else %}
           <p style="color:var(--text-secondary);margin-bottom:1.5rem;">Selecione como deseja pagar:</p>
           <div class="grid grid-2" style="gap:1rem;">
             <form action="{{ url_for('transaction_pay', uid=tx.uid) }}" method="POST">
@@ -77,6 +88,7 @@
               </button>
             </form>
           </div>
+          {% endif %}
         </div>
       </div>
 
@@ -87,6 +99,10 @@
           <h5 style="color:var(--text-primary);margin:0;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg> Pague com PIX</h5>
         </div>
         <div class="card-body" style="text-align:center;">
+          {% if tx.asaas_invoice_url %}
+          <a href="{{ tx.asaas_invoice_url }}" target="_blank" rel="noopener" class="btn btn-primary btn-block btn-lg" style="margin-bottom:1.2rem;text-decoration:none;">💳 Pagar com Cartão de Crédito</a>
+          <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:1.2rem;">— ou pague com PIX abaixo —</p>
+          {% endif %}
           <p style="color:var(--text-secondary);margin-bottom:1rem;">Escaneie o QR Code ou copie o código PIX abaixo:</p>
           {% if tx.mp_qr_base64 %}
           <img src="data:image/png;base64,{{ tx.mp_qr_base64 }}" alt="QR Code PIX" style="width:220px;height:220px;border:4px solid var(--accent);border-radius:12px;margin-bottom:1.2rem;">

@@ -479,6 +479,27 @@ def api_transaction_pay(uid):
     listing = proposal.listing if proposal else Listing.query.get(tx.listing_id)
     descricao = f'Zanini Scraps — {listing.title[:80]}' if listing else 'Zanini Scraps — Lote'
 
+    from modules import asaas
+    if asaas.habilitado():
+        try:
+            cliente_id = asaas.obter_ou_criar_cliente(user.name, user.document, user.email)
+            resultado = asaas.criar_cobranca(
+                tx_uid=tx.uid, valor=tx.gross_amount,
+                descricao=descricao, cliente_id=cliente_id)
+            tx.asaas_payment_id  = resultado['payment_id']
+            tx.asaas_invoice_url = resultado['invoice_url']
+            tx.mp_qr_code   = resultado['qr_code']
+            tx.mp_qr_base64 = resultado['qr_base64']
+            tx.payment_method = 'pix'
+            tx.payment_status = 'awaiting_payment'
+            db.session.commit()
+            d = _tx_dict(tx, user.id)
+            d['invoice_url'] = tx.asaas_invoice_url
+            return jsonify({'transaction': d})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)[:200]}), 400
+
     mp_enabled = bool(current_app.config.get('MP_ACCESS_TOKEN'))
     if mp_enabled:
         try:
@@ -574,6 +595,12 @@ def api_profile():
         v = data.get(field)
         if v is not None:
             setattr(user, field, v)
+    novo_doc = (data.get('document') or '').strip()
+    if novo_doc:
+        if User.query.filter(User.document == novo_doc, User.id != user.id).first():
+            return jsonify({'error': 'CPF/CNPJ já cadastrado em outra conta.'}), 409
+        user.document = novo_doc
+        user.document_type = 'cnpj' if len(''.join(c for c in novo_doc if c.isdigit())) == 14 else 'cpf'
     db.session.commit()
     return jsonify({'user': _user_dict(user)})
 

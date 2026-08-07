@@ -22,6 +22,7 @@ from config import Config
 from modules.models import (db, User, Category, Listing, ListingImage,
                             Proposal, Message, Transaction, Favorite, Notification)
 from modules import mercadopago as mp
+from modules import asaas
 from modules.api import api as api_blueprint
 
 app = Flask(__name__)
@@ -181,20 +182,27 @@ def executar_repasse(tx):
         tx.repasse_obs = 'Vendedor sem chave PIX cadastrada. Transferir manualmente.'
         return
 
-    mp_enabled = bool(app.config.get('MP_ACCESS_TOKEN'))
-    if not mp_enabled:
+    if not asaas.habilitado() and not app.config.get('MP_ACCESS_TOKEN'):
         tx.repasse_status = 'manual'
-        tx.repasse_obs = 'MP sem credenciais — ambiente de teste.'
+        tx.repasse_obs = 'Sem gateway configurado — ambiente de teste.'
         return
 
     try:
-        result = mp.transferir_pix(
-            tx_uid=tx.uid,
-            valor=tx.net_amount,
-            pix_key=seller.pix_key,
-            pix_key_type=seller.pix_key_type or 'email',
-            descricao=f'Zanini Scraps — repasse tx {tx.uid[:8]}',
-        )
+        if asaas.habilitado():
+            result = asaas.transferir_pix(
+                valor=tx.net_amount,
+                pix_key=seller.pix_key,
+                pix_key_type=seller.pix_key_type or 'email',
+                descricao=f'Zanini Scraps — repasse {tx.uid[:8]}',
+            )
+        else:
+            result = mp.transferir_pix(
+                tx_uid=tx.uid,
+                valor=tx.net_amount,
+                pix_key=seller.pix_key,
+                pix_key_type=seller.pix_key_type or 'email',
+                descricao=f'Zanini Scraps — repasse tx {tx.uid[:8]}',
+            )
         tx.repasse_status = 'enviado'
         tx.repasse_transfer_id = result.get('transfer_id', '')
         tx.repasse_at = datetime.utcnow()
@@ -219,6 +227,7 @@ def inject_globals():
         current_year=datetime.utcnow().year,
         unread_messages=unread_msgs,
         unread_notifications=unread_notifs,
+        asaas_enabled=asaas.habilitado(),
         categories=Category.query.order_by(Category.name).all() if Category.query.first() else []
     )
 
@@ -901,6 +910,28 @@ def transaction_pay(uid):
     tx = Transaction.query.filter_by(uid=uid, buyer_id=current_user.id, payment_status='pending').first_or_404()
     method = request.form.get('method', 'pix')
     tx.payment_method = method
+    _listing_desc = tx.display_title[:80]
+
+    # ── Integração Asaas (prioritária quando configurada) ──
+    if asaas.habilitado():
+        try:
+            cliente_id = asaas.obter_ou_criar_cliente(
+                current_user.name, current_user.document, current_user.email)
+            resultado = asaas.criar_cobranca(
+                tx_uid=tx.uid, valor=tx.gross_amount,
+                descricao=f'Zanini Scraps — {_listing_desc}', cliente_id=cliente_id)
+            tx.asaas_payment_id  = resultado['payment_id']
+            tx.asaas_invoice_url = resultado['invoice_url']
+            tx.mp_qr_code   = resultado['qr_code']
+            tx.mp_qr_base64 = resultado['qr_base64']
+            tx.payment_status = 'awaiting_payment'
+            db.session.commit()
+            flash('Cobrança gerada! Pague por PIX ou cartão.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f'Erro Asaas ao criar cobrança: {e}')
+            flash(f'{str(e)[:160]}', 'danger')
+        return redirect(url_for('transaction_detail', uid=uid))
 
     # ── Integração Mercado Pago ──
     mp_enabled = bool(app.config.get('MP_ACCESS_TOKEN'))
@@ -1045,6 +1076,14 @@ def profile():
     if request.method == 'POST':
         current_user.name = request.form.get('name', current_user.name)
         current_user.phone = request.form.get('phone', current_user.phone)
+        novo_doc = request.form.get('document', '').strip()
+        if novo_doc:
+            ja_usado = User.query.filter(User.document == novo_doc, User.id != current_user.id).first()
+            if ja_usado:
+                flash('Este CPF/CNPJ já está cadastrado em outra conta.', 'danger')
+                return redirect(url_for('profile'))
+            current_user.document = novo_doc
+            current_user.document_type = 'cnpj' if len(''.join(c for c in novo_doc if c.isdigit())) == 14 else 'cpf'
         current_user.city = request.form.get('city', current_user.city)
         current_user.state = request.form.get('state', current_user.state)
         current_user.cep = request.form.get('cep', current_user.cep)
@@ -1084,6 +1123,49 @@ def notifications():
     Notification.query.filter_by(user_id=current_user.id, is_read=False).update({'is_read': True})
     db.session.commit()
     return render_template('dashboard/notifications.html', notifications=notifs)
+
+
+# ─── WEBHOOK ASAAS ───
+@app.route('/asaas-webhook', methods=['POST'])
+@csrf.exempt
+def asaas_webhook():
+    """Recebe eventos de cobrança do Asaas e confirma pagamentos."""
+    if not asaas.verificar_webhook(request.headers):
+        return jsonify({'status': 'token invalido'}), 401
+
+    data = request.get_json(silent=True) or {}
+    evento = data.get('event', '')
+    pagamento = data.get('payment', {}) or {}
+    tx_uid = pagamento.get('externalReference', '')
+
+    if evento not in ('PAYMENT_RECEIVED', 'PAYMENT_CONFIRMED') or not tx_uid:
+        return jsonify({'status': 'ignored'}), 200
+
+    tx = Transaction.query.filter_by(uid=tx_uid).first()
+    if not tx:
+        return jsonify({'status': 'tx nao encontrada'}), 200
+    if tx.asaas_payment_id and pagamento.get('id') and tx.asaas_payment_id != pagamento.get('id'):
+        return jsonify({'status': 'payment_id divergente'}), 200
+
+    if tx.payment_status in ('pending', 'awaiting_payment'):
+        tx.payment_status = 'escrow'
+        tx.escrow_release_date = datetime.utcnow() + timedelta(days=app.config['ESCROW_RELEASE_DAYS'])
+        listing = tx.listing_ref
+        if listing and listing.status == 'active':
+            listing.status = 'reserved'
+        db.session.add(Notification(
+            user_id=tx.buyer_id, type='payment',
+            title='Pagamento confirmado!',
+            content=f'Seu pagamento de {brl(tx.gross_amount)} foi confirmado.',
+            link=f'/transaction/{tx.uid}'))
+        db.session.add(Notification(
+            user_id=tx.seller_id, type='payment',
+            title='Pagamento recebido!',
+            content=f'O comprador pagou {brl(tx.gross_amount)}. Combine a entrega de "{tx.display_title[:50]}".',
+            link=f'/transaction/{tx.uid}'))
+        db.session.commit()
+        app.logger.info(f'Asaas webhook: tx {tx.uid} em escrow.')
+    return jsonify({'status': 'ok'}), 200
 
 
 # ─── WEBHOOK MERCADO PAGO ───
@@ -1451,6 +1533,8 @@ _AUTO_MIGRATE_STMTS = [
     "ALTER TABLE messages     ADD COLUMN IF NOT EXISTS listing_id          INTEGER      REFERENCES listings(id)",
     "ALTER TABLE listing_images ADD COLUMN IF NOT EXISTS data              BYTEA",
     "ALTER TABLE listing_images ADD COLUMN IF NOT EXISTS mimetype          VARCHAR(40)",
+    "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS asaas_payment_id    VARCHAR(40)",
+    "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS asaas_invoice_url   VARCHAR(300)",
 ]
 
 _DEFAULT_CATEGORIES = [
