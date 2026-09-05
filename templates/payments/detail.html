@@ -56,6 +56,16 @@
           <h5 style="color:var(--text-primary);margin:0;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> Escolha a Forma de Pagamento</h5>
         </div>
         <div class="card-body">
+          {% if solana_enabled %}
+          <div style="background:var(--bg-2);border:1px solid #14F195;border-radius:8px;padding:1rem;margin-bottom:1.2rem;">
+            <p style="color:#14F195;font-weight:700;margin-bottom:.3rem;">◎ Pagar com Solana (USDC)</p>
+            <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.8rem;">Pagamento on-chain instantâneo com custódia verificável. Escaneie com a Phantom.</p>
+            <form action="{{ url_for('transaction_pay_solana', uid=tx.uid) }}" method="POST">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-block" style="background:#14F195;color:#06251a;font-weight:700;border:none;padding:.7rem;border-radius:8px;cursor:pointer;">Gerar cobrança Solana</button>
+            </form>
+          </div>
+          {% endif %}
           {% if asaas_enabled %}
           <p style="color:var(--text-secondary);margin-bottom:1rem;">Pague com PIX ou cartão de crédito:</p>
           <form action="{{ url_for('transaction_pay', uid=tx.uid) }}" method="POST">
@@ -91,6 +101,39 @@
           {% endif %}
         </div>
       </div>
+
+      <!-- ── SOLANA PAY ── -->
+      {% elif tx.payment_status == 'awaiting_payment' and tx.payment_method == 'solana' %}
+      <div class="card" style="margin-top:2rem;border:1px solid #14F195;">
+        <div class="card-header"><h5 style="color:#14F195;margin:0;">◎ Pague com Solana — {{ '%.2f'|format(tx.sol_amount_usdc) }} USDC</h5></div>
+        <div class="card-body" style="text-align:center;">
+          <p style="color:var(--text-secondary);margin-bottom:1rem;">Escaneie com a carteira Phantom (rede devnet):</p>
+          <img src="{{ url_for('solana_qr', uid=tx.uid) }}" alt="QR Solana Pay" style="width:230px;height:230px;border-radius:12px;border:4px solid #14F195;margin-bottom:1rem;">
+          <p id="sol-aguardando" style="color:var(--warning);font-size:.9rem;">⏳ Aguardando confirmação on-chain...</p>
+          <div id="sol-pago" style="display:none;background:rgba(20,241,149,.1);border:1px solid #14F195;border-radius:8px;padding:1rem;">
+            <p style="color:#14F195;font-weight:700;margin-bottom:.5rem;">✅ Pagamento confirmado na blockchain!</p>
+            <a id="sol-explorer" href="#" target="_blank" rel="noopener" style="color:#14F195;font-size:.85rem;word-break:break-all;">Ver transação no Solana Explorer →</a>
+          </div>
+        </div>
+      </div>
+      <script>
+      (function(){
+        var timer = setInterval(function(){
+          fetch('{{ url_for("solana_status", uid=tx.uid) }}')
+            .then(function(r){ return r.json(); })
+            .then(function(d){
+              if (d.paid) {
+                clearInterval(timer);
+                document.getElementById('sol-aguardando').style.display = 'none';
+                var box = document.getElementById('sol-pago');
+                box.style.display = 'block';
+                if (d.explorer) document.getElementById('sol-explorer').href = d.explorer;
+                setTimeout(function(){ location.reload(); }, 4000);
+              }
+            }).catch(function(){});
+        }, 4000);
+      })();
+      </script>
 
       <!-- ── QR CODE PIX ── -->
       {% elif tx.payment_status == 'awaiting_payment' and tx.payment_method == 'pix' %}
@@ -159,6 +202,15 @@
           </div>
           {% if tx.payment_method %}
           <p style="color:var(--text-secondary);font-size:.9rem;margin-top:1rem;margin-bottom:0;">Forma de pagamento: <strong>{{ tx.payment_method|upper }}</strong></p>
+          {% endif %}
+          {% if tx.sol_payment_sig %}
+          <div style="background:var(--bg-2);border:1px solid #14F195;border-radius:8px;padding:.8rem;margin-top:1rem;">
+            <p style="color:#14F195;font-size:.85rem;font-weight:700;margin-bottom:.4rem;">◎ Comprovantes on-chain (Solana)</p>
+            <p style="font-size:.8rem;margin:0 0 .3rem;"><a href="https://explorer.solana.com/tx/{{ tx.sol_payment_sig }}?cluster=devnet" target="_blank" rel="noopener" style="color:#14F195;">Pagamento do comprador ({{ '%.2f'|format(tx.sol_amount_usdc or 0) }} USDC) →</a></p>
+            {% if tx.sol_repasse_sig %}
+            <p style="font-size:.8rem;margin:0;"><a href="https://explorer.solana.com/tx/{{ tx.sol_repasse_sig }}?cluster=devnet" target="_blank" rel="noopener" style="color:#14F195;">Repasse automático ao vendedor →</a></p>
+            {% endif %}
+          </div>
           {% endif %}
         </div>
       </div>

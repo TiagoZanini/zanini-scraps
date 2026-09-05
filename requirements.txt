@@ -10,3 +10,6 @@ psycopg2-binary==2.9.9
 python-dotenv==1.0.0
 requests==2.31.0
 Flask-WTF==1.2.1
+solana==0.36.6
+solders==0.26.0
+segno==1.6.1

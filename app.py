@@ -23,6 +23,7 @@ from modules.models import (db, User, Category, Listing, ListingImage,
                             Proposal, Message, Transaction, Favorite, Notification)
 from modules import mercadopago as mp
 from modules import asaas
+from modules import solana_chain as sol
 from modules.api import api as api_blueprint
 
 app = Flask(__name__)
@@ -177,6 +178,28 @@ def executar_repasse(tx):
     if tx.repasse_status not in (None, '', 'pendente'):
         return  # idempotência: nunca repassar duas vezes
     seller = User.query.get(tx.seller_id)
+
+    # ── Pagamento feito via Solana: repasse on-chain em USDC ──
+    if tx.payment_method == 'solana' and sol.habilitado():
+        if not seller or not seller.solana_wallet:
+            tx.repasse_status = 'manual'
+            tx.repasse_obs = 'Vendedor sem carteira Solana cadastrada.'
+            return
+        try:
+            liquido_usdc = round((tx.sol_amount_usdc or 0) * (tx.net_amount / tx.gross_amount), 2)
+            resultado = sol.repasse_usdc(seller.solana_wallet, liquido_usdc)
+            tx.sol_repasse_sig = resultado['signature']
+            tx.repasse_status = 'enviado'
+            tx.repasse_transfer_id = resultado['signature'][:60]
+            tx.repasse_at = datetime.utcnow()
+            tx.repasse_obs = f'{liquido_usdc} USDC on-chain: {sol.link_explorer(resultado["signature"])}'
+            app.logger.info(f'Repasse Solana tx {tx.uid}: {resultado["signature"]}')
+        except Exception as e:
+            tx.repasse_status = 'falhou'
+            tx.repasse_obs = f'Erro Solana: {str(e)[:250]}'
+            app.logger.error(f'Repasse Solana tx {tx.uid} falhou: {e}')
+        return
+
     if not seller or not seller.pix_key:
         tx.repasse_status = 'manual'
         tx.repasse_obs = 'Vendedor sem chave PIX cadastrada. Transferir manualmente.'
@@ -228,6 +251,7 @@ def inject_globals():
         unread_messages=unread_msgs,
         unread_notifications=unread_notifs,
         asaas_enabled=asaas.habilitado(),
+        solana_enabled=sol.habilitado(),
         categories=Category.query.order_by(Category.name).all() if Category.query.first() else []
     )
 
@@ -1094,6 +1118,9 @@ def profile():
         if pix_key:
             current_user.pix_key = pix_key
             current_user.pix_key_type = request.form.get('pix_key_type', 'email')
+        solana_wallet = request.form.get('solana_wallet', '').strip()
+        if solana_wallet:
+            current_user.solana_wallet = solana_wallet
 
         avatar = request.files.get('avatar')
         if avatar and allowed_file(avatar.filename):
@@ -1476,6 +1503,76 @@ def favorites_list():
     return render_template('listings/favorites.html', listings=listings)
 
 
+# ─── SOLANA PAY (hackathon) ───
+BRL_PER_USDC = float(os.environ.get('BRL_PER_USDC', '5.0'))  # conversão demo BRL→USDC
+
+
+@app.route('/transaction/<uid>/pay-solana', methods=['POST'])
+@login_required
+def transaction_pay_solana(uid):
+    """Gera cobrança Solana Pay (USDC devnet) para a transação."""
+    if not sol.habilitado():
+        abort(404)
+    tx = Transaction.query.filter_by(uid=uid, buyer_id=current_user.id, payment_status='pending').first_or_404()
+    tx.sol_reference = sol.gerar_referencia()
+    tx.sol_amount_usdc = round(tx.gross_amount / BRL_PER_USDC, 2)
+    tx.payment_method = 'solana'
+    tx.payment_status = 'awaiting_payment'
+    db.session.commit()
+    flash('Cobrança Solana gerada! Escaneie o QR com sua carteira (Phantom).', 'success')
+    return redirect(url_for('transaction_detail', uid=uid))
+
+
+@app.route('/solana/qr/<uid>.png')
+@login_required
+def solana_qr(uid):
+    """QR Code do link Solana Pay da transação."""
+    from flask import Response
+    import io, segno
+    tx = Transaction.query.filter_by(uid=uid).first_or_404()
+    if current_user.id not in (tx.buyer_id, tx.seller_id) or not tx.sol_reference:
+        abort(404)
+    url = sol.link_pagamento(tx.sol_amount_usdc, tx.sol_reference,
+                             mensagem=tx.display_title[:50])
+    buf = io.BytesIO()
+    segno.make(url, error='m').save(buf, kind='png', scale=6, dark='#14F195', light='#0b0b0c')
+    return Response(buf.getvalue(), mimetype='image/png')
+
+
+@app.route('/solana/status/<uid>')
+@login_required
+def solana_status(uid):
+    """Polling: verifica na chain se o pagamento da transação confirmou."""
+    tx = Transaction.query.filter_by(uid=uid).first_or_404()
+    if current_user.id not in (tx.buyer_id, tx.seller_id):
+        abort(403)
+    if tx.payment_status == 'escrow' or tx.payment_status == 'released':
+        return jsonify({'paid': True, 'signature': tx.sol_payment_sig,
+                        'explorer': sol.link_explorer(tx.sol_payment_sig) if tx.sol_payment_sig else None})
+    if not tx.sol_reference:
+        return jsonify({'paid': False})
+    try:
+        assinatura = sol.verificar_pagamento(tx.sol_reference)
+    except Exception as e:
+        app.logger.warning(f'Solana verificar_pagamento: {e}')
+        assinatura = None
+    if not assinatura:
+        return jsonify({'paid': False})
+    # confirma: escrow on-chain
+    tx.sol_payment_sig = assinatura
+    tx.payment_status = 'escrow'
+    tx.escrow_release_date = datetime.utcnow() + timedelta(days=app.config['ESCROW_RELEASE_DAYS'])
+    listing = tx.listing_ref
+    if listing and listing.status == 'active':
+        listing.status = 'reserved'
+    db.session.add(Notification(
+        user_id=tx.seller_id, type='payment', title='Pagamento recebido on-chain!',
+        content=f'O comprador pagou {tx.sol_amount_usdc} USDC via Solana. Combine a entrega.',
+        link=f'/transaction/{tx.uid}'))
+    db.session.commit()
+    return jsonify({'paid': True, 'signature': assinatura, 'explorer': sol.link_explorer(assinatura)})
+
+
 # ─── Mídia (imagens no banco) ───
 @app.route('/media/<int:img_id>')
 def media_image(img_id):
@@ -1535,6 +1632,11 @@ _AUTO_MIGRATE_STMTS = [
     "ALTER TABLE listing_images ADD COLUMN IF NOT EXISTS mimetype          VARCHAR(40)",
     "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS asaas_payment_id    VARCHAR(40)",
     "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS asaas_invoice_url   VARCHAR(300)",
+    "ALTER TABLE users        ADD COLUMN IF NOT EXISTS solana_wallet       VARCHAR(64)",
+    "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS sol_reference       VARCHAR(64)",
+    "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS sol_amount_usdc     DOUBLE PRECISION",
+    "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS sol_payment_sig     VARCHAR(120)",
+    "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS sol_repasse_sig     VARCHAR(120)",
 ]
 
 _DEFAULT_CATEGORIES = [

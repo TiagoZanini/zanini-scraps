@@ -46,6 +46,7 @@ class User(UserMixin, db.Model):
     # Recebimento
     pix_key      = db.Column(db.String(150))   # chave PIX para repasse automático
     pix_key_type = db.Column(db.String(20))    # cpf, cnpj, email, telefone, aleatoria
+    solana_wallet = db.Column(db.String(64))   # carteira Solana do vendedor (repasse USDC)
 
     # Relationships
     listings = db.relationship('Listing', backref='seller', lazy='dynamic', foreign_keys='Listing.seller_id')
@@ -234,6 +235,12 @@ class Transaction(db.Model):
     # Asaas
     asaas_payment_id  = db.Column(db.String(40))
     asaas_invoice_url = db.Column(db.String(300))
+
+    # Solana (hackathon)
+    sol_reference   = db.Column(db.String(64))    # reference do Solana Pay
+    sol_amount_usdc = db.Column(db.Float)         # valor cobrado em USDC
+    sol_payment_sig = db.Column(db.String(120))   # hash do pagamento do comprador
+    sol_repasse_sig = db.Column(db.String(120))   # hash do repasse ao vendedor
 
     # Logística
     logistics_status = db.Column(db.String(20), default='pending')  # pending, scheduled, in_transit, delivered, confirmed
