@@ -66,11 +66,7 @@
                         <div class="info-item">
                             <div class="info-label">Nota de origem</div>
                             <div class="info-value">
-                                {% if listing.has_invoice %}
-                                <span style="color:var(--success);">Nota fiscal disponível</span>
-                                {% else %}
-                                <span style="color:var(--warning);">Sem nota declarada</span>
-                                {% endif %}
+                                <span style="color:var(--success);">Nota fiscal de origem</span>
                             </div>
                         </div>
                         {% if listing.availability %}
@@ -104,11 +100,23 @@
                     {% endif %}
                     <h1 style="font-size:1.4rem; font-weight:700; margin-bottom:12px; letter-spacing:-0.3px;">{{ listing.title }}</h1>
 
-                    <div class="detail-price">{{ listing.price|brl }}
-                        {% if listing.price_type == 'por_unidade' %}
-                        <span style="font-size:1rem; color:var(--text-muted);">/ {{ listing.unit }}</span>
-                        {% endif %}
+                    {% if listing.price_type == 'por_unidade' %}
+                    <div class="detail-price">{{ (listing.price * listing.quantity)|brl }}
+                        <span style="font-size:0.9rem; color:var(--text-muted); font-weight:500;">lote completo</span>
                     </div>
+                    <div style="color:var(--text-secondary); font-size:0.95rem; margin-top:4px;">
+                        {{ listing.price|brl }} / {{ listing.unit }} &times; {{ listing.quantity }} {{ listing.unit }}
+                    </div>
+                    {% else %}
+                    <div class="detail-price">{{ listing.price|brl }}
+                        <span style="font-size:0.9rem; color:var(--text-muted); font-weight:500;">valor total do lote</span>
+                    </div>
+                    {% if listing.quantity and listing.quantity > 0 %}
+                    <div style="color:var(--text-secondary); font-size:0.95rem; margin-top:4px;">
+                        equivale a {{ (listing.price / listing.quantity)|brl }} / {{ listing.unit }}
+                    </div>
+                    {% endif %}
+                    {% endif %}
 
                     <div class="info-grid" style="margin-top:20px;">
                         <div class="info-item">
@@ -125,7 +133,9 @@
                         </div>
                         <div class="info-item">
                             <div class="info-label">Entrega</div>
-                            <div class="info-value">{{ listing.delivery_type|capitalize }}</div>
+                            <div class="info-value">{% if listing.delivery_type == 'retirada' %}Retirada no local (comprador busca)
+                                {% elif listing.delivery_type == 'entrega' %}Entrega pelo vendedor (frete a combinar)
+                                {% else %}Retirada ou entrega (a combinar no chat){% endif %}</div>
                         </div>
                     </div>
 
@@ -142,8 +152,9 @@
 
                     {% if current_user.is_authenticated %}
                     <div style="margin-top:14px;">
-                        <button class="btn btn-secondary btn-sm" onclick="toggleFavorite({{ listing.id }})">
-                            {{ 'Favoritado' if is_favorited else 'Favoritar' }}
+                        <button type="button" class="btn btn-secondary btn-sm fav-toggle {{ 'is-fav' if is_favorited }}" data-listing="{{ listing.id }}" style="display:inline-flex;align-items:center;gap:6px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="{{ 'currentColor' if is_favorited else 'none' }}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                            <span class="fav-label">{{ 'Salvo nos favoritos' if is_favorited else 'Salvar nos favoritos' }}</span>
                         </button>
                     </div>
                     {% endif %}
@@ -180,8 +191,8 @@
                     <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:14px;">Compre agora pelo valor anunciado, sem esperar negociação.</p>
                     <form method="POST" action="{{ url_for('buy_now', uid=listing.uid) }}">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-primary btn-block btn-lg" onclick="return confirm('Confirmar compra por {{ listing.price|brl }}?')">
-                            Comprar Agora &mdash; {{ listing.price|brl }}
+                        <button type="submit" class="btn btn-primary btn-block btn-lg" onclick="return confirm('Confirmar compra do lote completo por {{ listing.lot_total|brl }}?')">
+                            Comprar Agora &mdash; {{ listing.lot_total|brl }}
                         </button>
                     </form>
                     <p style="font-size:0.72rem;color:var(--text-muted);margin-top:8px;text-align:center;">O lote é reservado imediatamente. Pagamento via PIX.</p>
@@ -195,13 +206,17 @@
                 <h3>Fazer Proposta</h3>
                 <form method="POST" action="{{ url_for('proposal_create', uid=listing.uid) }}">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <div class="form-group">
-                        <label class="form-label">Valor da Proposta (R$)</label>
-                        <input type="number" name="amount" class="form-control" step="0.01" placeholder="0,00" required value="{{ listing.price }}">
-                    </div>
+                    {% set unit_price = listing.price if listing.price_type == 'por_unidade' else (listing.price / listing.quantity if listing.quantity else listing.price) %}
+                    {% set lot_total = listing.price * listing.quantity if listing.price_type == 'por_unidade' else listing.price %}
                     <div class="form-group">
                         <label class="form-label">Quantidade Desejada ({{ listing.unit }})</label>
-                        <input type="number" name="quantity" class="form-control" step="0.01" value="{{ listing.quantity }}">
+                        <input type="number" name="quantity" id="prop-qty" class="form-control" step="0.01" min="0.01" max="{{ listing.quantity }}" value="{{ listing.quantity }}" data-unit-price="{{ '%.4f'|format(unit_price) }}">
+                        <small style="color:var(--text-muted);">Disponível: {{ listing.quantity }} {{ listing.unit }} &middot; {{ unit_price|brl }} / {{ listing.unit }}</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Valor da Proposta (R$) <span style="color:var(--text-muted);font-weight:400;">total pela quantidade</span></label>
+                        <input type="number" name="amount" id="prop-amount" class="form-control" step="0.01" placeholder="0,00" required value="{{ '%.2f'|format(lot_total) }}">
+                        <small style="color:var(--text-muted);">Valor anunciado para essa quantidade: <strong id="prop-ref">{{ lot_total|brl }}</strong></small>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Mensagem (opcional)</label>
@@ -234,11 +249,17 @@
     {% endif %}
 </div>
 
+
 <script>
-function toggleFavorite(listingId) {
-    fetch('/favorite/' + listingId, {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('meta[name=csrf-token]').content}})
-    .then(r => r.json())
-    .then(data => location.reload());
-}
+(function(){
+  var qty = document.getElementById('prop-qty'), amt = document.getElementById('prop-amount'), ref = document.getElementById('prop-ref');
+  if (!qty || !amt) return;
+  var unitPrice = parseFloat(qty.dataset.unitPrice) || 0;
+  qty.addEventListener('input', function(){
+    var q = parseFloat(qty.value) || 0, total = q * unitPrice;
+    amt.value = total.toFixed(2);
+    ref.textContent = total.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+  });
+})();
 </script>
 {% endblock %}

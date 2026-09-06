@@ -97,9 +97,9 @@
                     <div class="form-group">
                         <label class="form-label">Tipo de Entrega</label>
                         <select name="delivery_type" class="form-control">
-                            <option value="retirada" {{ 'selected' if listing.delivery_type == 'retirada' }}>Retirada</option>
-                            <option value="entrega" {{ 'selected' if listing.delivery_type == 'entrega' }}>Entrega</option>
-                            <option value="ambos" {{ 'selected' if listing.delivery_type == 'ambos' }}>Ambos</option>
+                            <option value="retirada" {{ 'selected' if listing.delivery_type == 'retirada' }}>Retirada no local (comprador busca)</option>
+                            <option value="entrega" {{ 'selected' if listing.delivery_type == 'entrega' }}>Entrega pelo vendedor (frete a combinar)</option>
+                            <option value="ambos" {{ 'selected' if listing.delivery_type == 'ambos' }}>Retirada ou entrega (a combinar)</option>
                         </select>
                     </div>
                 </div>
@@ -119,7 +119,7 @@
             </div>
             <div class="form-check" style="margin-bottom:12px;">
                 <input type="checkbox" name="has_invoice" id="has_invoice" value="1" {{ 'checked' if listing.has_invoice }}>
-                <label for="has_invoice" style="font-weight:600;">Possuo nota fiscal de origem deste material</label>
+                <label for="has_invoice" style="font-weight:600;">Possuo nota fiscal de origem deste material * <span style="color:var(--text-muted);font-weight:400;">(obrigatório para manter publicado)</span></label>
             </div>
             <div class="form-check" style="margin-bottom:20px;padding:12px;background:var(--bg-2);border-radius:8px;border:1px solid var(--bg-3);">
                 <input type="checkbox" name="venda_imediata" id="venda_imediata" value="1" {{ 'checked' if listing.venda_imediata }}>

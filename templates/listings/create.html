@@ -23,8 +23,8 @@
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">Categoria</label>
-                            <select name="category_id" class="form-control">
+                            <label class="form-label">Categoria *</label>
+                            <select name="category_id" class="form-control" required>
                                 <option value="">Selecione</option>
                                 {% for cat in categories %}
                                 <option value="{{ cat.id }}">{{ cat.name }}</option>
@@ -32,8 +32,8 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Tipo de Material</label>
-                            <input type="text" name="material_type" class="form-control" placeholder="Ex: Vergalhão CA-50, Bloco cerâmico, Madeira pinus...">
+                            <label class="form-label">Tipo de Material <span style="color:var(--text-muted);font-weight:400;">(específico dentro da categoria)</span></label>
+                            <input type="text" name="material_type" class="form-control" placeholder="Ex: Vergalhão CA-50, Bloco cerâmico, Pinus, PVC, Alumínio...">
                         </div>
                     </div>
                     <div class="form-group">
@@ -118,7 +118,7 @@
                         <select name="delivery_type" class="form-control">
                             <option value="retirada">Retirada no local — o comprador busca</option>
                             <option value="entrega">Entrega pelo vendedor — frete a combinar</option>
-                            <option value="ambos">Tanto faz — retirada ou entrega, a combinar</option>
+                            <option value="ambos">Retirada ou entrega — a combinar com o comprador</option>
                         </select>
                     </div>
                 </div>
@@ -141,8 +141,8 @@
                         <textarea name="observations" class="form-control" rows="2" placeholder="Ex: Material está em pátio coberto. Trazer caminhão basculante. Contato no canteiro somente pela manhã."></textarea>
                     </div>
                     <div class="form-check" style="margin-top:8px;">
-                        <input type="checkbox" name="has_invoice" id="has_invoice" value="1">
-                        <label for="has_invoice" style="font-weight:600;">Possuo nota fiscal de origem deste material</label>
+                        <input type="checkbox" name="has_invoice" id="has_invoice" value="1" required>
+                        <label for="has_invoice" style="font-weight:600;">Possuo nota fiscal de origem deste material * <span style="color:var(--text-muted);font-weight:400;">(obrigatório para publicar)</span></label>
                     </div>
                     <div class="form-check" style="margin-top:10px;padding:12px;background:var(--bg-2);border-radius:8px;border:1px solid var(--bg-3);">
                         <input type="checkbox" name="venda_imediata" id="venda_imediata" value="1">

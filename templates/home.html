@@ -1,13 +1,13 @@
 {% extends "base.html" %}
-{% block title %}{{ platform_name }} - Sobras de Obra e Materiais de Construção Civil{% endblock %}
+{% block title %}{{ platform_name }} - Marketplace de Sobras e Resíduos Reaproveitáveis{% endblock %}
 
 {% block content %}
 <!-- Hero -->
 <section class="hero">
     <div class="container">
-        <p class="hero-subtitle">Marketplace de Reaproveitamento e Reciclagem</p>
+        <p class="hero-subtitle">Marketplace de Reaproveitamento e Resíduos</p>
         <h1>Compre e venda <span>sobras e materiais reaproveitáveis</span><br>com segurança em todo o Brasil</h1>
-        <p>Sobras de obra, excedentes industriais e materiais recicláveis — com rastreabilidade, pagamento protegido e logística integrada.</p>
+        <p>Sobras de obra, excedentes industriais e resíduos reaproveitáveis — com rastreabilidade e pagamento protegido.</p>
         <form class="hero-search" action="{{ url_for('marketplace') }}" method="GET">
             <input type="text" name="q" placeholder="Buscar material, tipo, cidade..." autocomplete="off">
             <button type="submit" class="btn btn-primary btn-lg">Buscar</button>
@@ -107,7 +107,7 @@
             <div class="step-card">
                 <div class="step-number">2</div>
                 <h3>Publique ou Busque</h3>
-                <p>Anuncie suas sobras de obra ou encontre o material que precisa com filtros avançados.</p>
+                <p>Anuncie suas sobras e resíduos ou encontre o material que precisa por categoria, material e região.</p>
             </div>
             <div class="step-card">
                 <div class="step-number">3</div>
@@ -117,7 +117,7 @@
             <div class="step-card">
                 <div class="step-number">4</div>
                 <h3>Pague e Receba</h3>
-                <p>Pagamento seguro via Pix com escrow e liberação após confirmação da retirada.</p>
+                <p>Pagamento via PIX fica retido na plataforma e só é liberado ao vendedor após a confirmação de recebimento.</p>
             </div>
         </div>
     </div>
@@ -127,7 +127,7 @@
 <section class="section">
     <div class="container">
         <h2 class="section-title" style="text-align:center;">Categorias de Materiais</h2>
-        <p class="section-subtitle" style="text-align:center;">Encontre o material ideal para sua obra</p>
+        <p class="section-subtitle" style="text-align:center;">Navegue por tipo de material</p>
         <div class="grid grid-4">
             {% for cat in categories %}
             <a href="{{ url_for('marketplace', category=cat.id) }}" class="category-card">

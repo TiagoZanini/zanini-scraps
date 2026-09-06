@@ -139,6 +139,13 @@ class Listing(db.Model):
     proposals = db.relationship('Proposal', backref='listing', lazy='dynamic', cascade='all, delete-orphan')
 
     @property
+    def lot_total(self):
+        """Valor do lote completo (preço × quantidade quando o preço é por unidade)."""
+        if self.price_type == 'por_unidade':
+            return round((self.price or 0) * (self.quantity or 0), 2)
+        return self.price or 0
+
+    @property
     def main_image(self):
         img = self.images.filter_by(is_main=True).first()
         if not img:

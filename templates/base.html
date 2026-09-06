@@ -83,7 +83,7 @@
             <div class="footer-grid">
                 <div>
                     <div class="footer-brand">{{ platform_name }}</div>
-                    <p class="footer-desc">Marketplace de sobras, excedentes e materiais reaproveitáveis. Compre e venda com segurança, rastreabilidade e pagamento protegido.</p>
+                    <p class="footer-desc">Marketplace de sobras, excedentes e resíduos reaproveitáveis. Compre e venda com segurança, rastreabilidade e pagamento protegido.</p>
                 </div>
                 <div class="footer-col">
                     <h4>Plataforma</h4>
@@ -113,17 +113,27 @@
                     </ul>
                 </div>
             </div>
-            <div class="footer-bottom">
-                <span>&copy; {{ current_year }} Zanini Scraps by Zanini Business</span>
-                <span>Construção Civil &middot; Pagamento Seguro &middot; Logística Integrada</span>
-            </div>
-            <div class="dev-credit">
-                Desenvolvido por Grupo Zanini S.A. &middot; Direitos reservados à Zanini Business &middot; Inventor Tiago Lourenço Zanini
-            </div>
         </div>
     </footer>
 
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script>
+    document.addEventListener('click', function(e){
+      var btn = e.target.closest('.fav-toggle');
+      if (!btn) return;
+      e.preventDefault();
+      fetch('/favorite/' + btn.dataset.listing, {method:'POST', headers:{'X-CSRFToken': document.querySelector('meta[name=csrf-token]').content}})
+        .then(function(r){ if (r.status === 401 || r.redirected) { location.href = '/login'; return null; } return r.json(); })
+        .then(function(d){
+          if (!d) return;
+          var on = d.status === 'added';
+          btn.classList.toggle('is-fav', on);
+          var svg = btn.querySelector('svg'); if (svg) svg.setAttribute('fill', on ? 'currentColor' : 'none');
+          var lbl = btn.querySelector('.fav-label'); if (lbl) lbl.textContent = on ? 'Salvo nos favoritos' : 'Salvar nos favoritos';
+          if (btn.classList.contains('fav-heart') && !on && location.pathname.indexOf('/favoritos') === 0) { var card = btn.closest('.listing-card'); if (card) card.remove(); }
+        }).catch(function(){});
+    });
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

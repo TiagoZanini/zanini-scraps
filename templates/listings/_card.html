@@ -23,6 +23,11 @@
         </span>
         {% endif %}
     </a>
+    {% if current_user.is_authenticated and current_user.id != listing.seller_id %}
+    <button type="button" class="fav-heart fav-toggle {{ 'is-fav' if listing.id in fav_ids }}" data-listing="{{ listing.id }}" title="Salvar nos favoritos" aria-label="Salvar nos favoritos">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="{{ 'currentColor' if listing.id in fav_ids else 'none' }}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    </button>
+    {% endif %}
     <div class="listing-card-body">
         {% if listing.category %}
         <div class="listing-card-category">{{ listing.category.name }}</div>
@@ -41,23 +46,24 @@
         </div>
         <div class="listing-card-badges">
             {% if listing.has_invoice %}
-            <span class="tag-invoice">Com nota de origem</span>
-            {% else %}
-            <span class="tag-no-invoice">Sem nota declarada</span>
+            <span class="tag-invoice">Com nota fiscal</span>
             {% endif %}
             {% if listing.delivery_type == 'retirada' %}
             <span class="tag-delivery">Retirada no local</span>
             {% elif listing.delivery_type == 'entrega' %}
             <span class="tag-delivery">Entrega pelo vendedor</span>
             {% else %}
-            <span class="tag-delivery">Entrega negociável</span>
+            <span class="tag-delivery">Retirada ou entrega</span>
             {% endif %}
         </div>
         <div class="listing-card-price">
             <div>
-                <span class="price">{{ listing.price|brl }}</span>
                 {% if listing.price_type == 'por_unidade' %}
-                <span class="unit">/ {{ listing.unit }}</span>
+                <span class="price">{{ (listing.price * listing.quantity)|brl }}</span>
+                <div class="unit" style="display:block;">{{ listing.price|brl }} / {{ listing.unit }}</div>
+                {% else %}
+                <span class="price">{{ listing.price|brl }}</span>
+                <div class="unit" style="display:block;">lote completo</div>
                 {% endif %}
             </div>
             <span class="views">{{ listing.views }} views</span>

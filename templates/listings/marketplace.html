@@ -20,7 +20,7 @@
                 </div>
                 <div class="filter-section">
                     <div class="filter-title">Categoria</div>
-                    <select name="category" class="form-control">
+                    <select name="category" class="form-control" onchange="this.form.querySelector('[name=material]').value='';this.form.submit()">
                         <option value="">Todas</option>
                         {% for cat in categories %}
                         <option value="{{ cat.id }}" {{ 'selected' if request.args.get('category') == cat.id|string }}>{{ cat.name }}</option>
@@ -28,8 +28,8 @@
                     </select>
                 </div>
                 <div class="filter-section">
-                    <div class="filter-title">Material</div>
-                    <select name="material" class="form-control">
+                    <div class="filter-title">Material {% if request.args.get('category') %}<span style="color:var(--text-muted);font-weight:400;">(da categoria)</span>{% endif %}</div>
+                    <select name="material" class="form-control" onchange="this.form.submit()">
                         <option value="">Todos</option>
                         {% for m in materials %}
                         <option value="{{ m }}" {{ 'selected' if request.args.get('material') == m }}>{{ m }}</option>

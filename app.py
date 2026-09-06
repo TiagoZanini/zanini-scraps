@@ -242,10 +242,13 @@ def executar_repasse(tx):
 def inject_globals():
     unread_msgs = 0
     unread_notifs = 0
+    fav_ids = set()
     if current_user.is_authenticated:
         unread_msgs = Message.query.filter_by(receiver_id=current_user.id, is_read=False).count()
         unread_notifs = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
+        fav_ids = {f.listing_id for f in Favorite.query.filter_by(user_id=current_user.id).all()}
     return dict(
+        fav_ids=fav_ids,
         platform_name='Zanini Scraps',
         current_year=datetime.utcnow().year,
         unread_messages=unread_msgs,
@@ -419,9 +422,12 @@ def marketplace():
 
     pagination = query.paginate(page=page, per_page=app.config['ITEMS_PER_PAGE'], error_out=False)
 
-    materials = db.session.query(Listing.material_type).filter(
-        Listing.status == 'active', Listing.material_type.isnot(None)
-    ).distinct().all()
+    mat_q = db.session.query(Listing.material_type).filter(
+        Listing.status == 'active', Listing.material_type.isnot(None), Listing.material_type != ''
+    )
+    if cat:
+        mat_q = mat_q.filter(Listing.category_id == cat)
+    materials = mat_q.distinct().all()
     materials = sorted(set(m[0] for m in materials if m[0]))
 
     states_list = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS',
@@ -476,6 +482,12 @@ def listing_create():
         status_final = 'draft' if 'draft' in status_values else 'active'
         if _num('price') <= 0:
             flash('Informe um preço válido para o anúncio.', 'danger')
+            return render_template('listings/create.html')
+        if status_final == 'active' and not request.form.get('has_invoice'):
+            flash('Para publicar é obrigatório declarar a nota fiscal de origem do material.', 'danger')
+            return render_template('listings/create.html')
+        if status_final == 'active' and not request.form.get('category_id'):
+            flash('Selecione a categoria do material.', 'danger')
             return render_template('listings/create.html')
         listing = Listing(
             seller_id=current_user.id,
@@ -556,6 +568,10 @@ def listing_edit(uid):
         novo_status = request.form.get('status', listing.status)
         if novo_status in ('active', 'draft'):   # nunca aceitar status arbitrário do form
             listing.status = novo_status
+        if listing.status == 'active' and not listing.has_invoice:
+            db.session.rollback()
+            flash('Para manter o anúncio publicado é obrigatório declarar a nota fiscal de origem.', 'danger')
+            return redirect(url_for('listing_edit', uid=listing.uid))
 
         # Novas imagens (armazenadas no banco)
         files = request.files.getlist('images')
@@ -1377,14 +1393,15 @@ def buy_now(uid):
         flash('Este lote acabou de ser reservado por outro comprador.', 'danger')
         return redirect(url_for('listing_detail', uid=uid))
 
-    commission = listing.price * app.config['COMMISSION_RATE']
+    valor = listing.lot_total
+    commission = valor * app.config['COMMISSION_RATE']
     tx = Transaction(
         listing_id=listing.id,
         buyer_id=current_user.id,
         seller_id=listing.seller_id,
-        gross_amount=listing.price,
+        gross_amount=valor,
         commission=commission,
-        net_amount=listing.price - commission,
+        net_amount=valor - commission,
         payment_status='pending',
         escrow_release_date=datetime.utcnow() + timedelta(days=app.config['ESCROW_RELEASE_DAYS'])
     )
@@ -1640,16 +1657,22 @@ _AUTO_MIGRATE_STMTS = [
 ]
 
 _DEFAULT_CATEGORIES = [
-    ('Metais Ferrosos', 'metais-ferrosos', '🔩'),
-    ('Metais Não-Ferrosos', 'metais-nao-ferrosos', '🥇'),
-    ('Plásticos', 'plasticos', '♳'),
-    ('Madeira', 'madeira', '🪵'),
     ('Construção Civil', 'construcao-civil', '🧱'),
+    ('Madeira', 'madeira', '🪵'),
+    ('Metal', 'metal', '🔩'),
+    ('Plástico', 'plastico', '♳'),
+    ('Borracha', 'borracha', '⚫'),
     ('Eletrônicos', 'eletronicos', '💡'),
     ('Têxteis', 'texteis', '🧵'),
-    ('Químicos', 'quimicos', '🧪'),
     ('Outros', 'outros', '📦'),
 ]
+# categorias antigas -> nova (slug antigo: slug novo). Anúncios são remapeados e a antiga removida.
+_CATEGORY_MERGE = {
+    'metais-ferrosos': 'metal',
+    'metais-nao-ferrosos': 'metal',
+    'plasticos': 'plastico',
+    'quimicos': 'outros',
+}
 
 def _run_auto_migrations():
     try:
@@ -1660,16 +1683,25 @@ def _run_auto_migrations():
             db.session.commit()
             app.logger.info('Seed: categorias criadas.')
         else:
-            # corrige nomes sem acento gravados em deploy anterior
             changed = False
-            for name, slug, _icon in _DEFAULT_CATEGORIES:
+            for name, slug, icon in _DEFAULT_CATEGORIES:
                 cat = Category.query.filter_by(slug=slug).first()
-                if cat and cat.name != name:
+                if not cat:
+                    db.session.add(Category(name=name, slug=slug, icon=icon))
+                    changed = True
+                elif cat.name != name:
                     cat.name = name
                     changed = True
             if changed:
                 db.session.commit()
-                app.logger.info('Seed: nomes de categorias corrigidos.')
+            for old_slug, new_slug in _CATEGORY_MERGE.items():
+                old = Category.query.filter_by(slug=old_slug).first()
+                new = Category.query.filter_by(slug=new_slug).first()
+                if old and new and old.id != new.id:
+                    n = Listing.query.filter_by(category_id=old.id).update({'category_id': new.id})
+                    db.session.delete(old)
+                    db.session.commit()
+                    app.logger.info(f'Seed: categoria {old_slug} fundida em {new_slug} ({n} anúncios).')
         outros = Category.query.filter_by(slug='outros').first()
         if outros:
             sem_cat = Listing.query.filter_by(category_id=None).update({'category_id': outros.id})
