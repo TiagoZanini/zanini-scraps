@@ -78,6 +78,34 @@ def verificar_pagamento(referencia):
     return None
 
 
+def verificar_assinatura(assinatura: str, valor_usdc) -> bool:
+    """
+    Confere on-chain se a transação *assinatura* creditou pelo menos *valor_usdc*
+    em USDC na carteira da plataforma. Usado quando o comprador envia manualmente
+    pela carteira (sem o link Solana Pay) e cola a hash.
+    """
+    from solders.signature import Signature
+    client = _client()
+    try:
+        sig = Signature.from_string(assinatura.strip())
+    except Exception:
+        return False
+    resp = client.get_transaction(sig, encoding='jsonParsed', max_supported_transaction_version=0)
+    if resp.value is None or resp.value.transaction.meta is None or resp.value.transaction.meta.err is not None:
+        return False
+    meta = resp.value.transaction.meta
+    plataforma = str(carteira_plataforma())
+
+    def saldo(lista):
+        for b in (lista or []):
+            if str(b.mint) == USDC_MINT and b.owner is not None and str(b.owner) == plataforma:
+                return Decimal(b.ui_token_amount.ui_amount_string or '0')
+        return Decimal('0')
+
+    recebido = saldo(meta.post_token_balances) - saldo(meta.pre_token_balances)
+    return recebido >= Decimal(str(valor_usdc)) - Decimal('0.000001')
+
+
 def _ata(owner_pubkey, mint_pubkey):
     """Associated Token Account do dono para o mint."""
     from spl.token.instructions import get_associated_token_address

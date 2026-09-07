@@ -255,6 +255,7 @@ def inject_globals():
         unread_notifications=unread_notifs,
         asaas_enabled=asaas.habilitado(),
         solana_enabled=sol.habilitado(),
+        solana_platform_wallet=str(sol.carteira_plataforma()) if sol.habilitado() else None,
         categories=Category.query.order_by(Category.name).all() if Category.query.first() else []
     )
 
@@ -1575,7 +1576,12 @@ def solana_status(uid):
         assinatura = None
     if not assinatura:
         return jsonify({'paid': False})
-    # confirma: escrow on-chain
+    _confirmar_pagamento_solana(tx, assinatura)
+    return jsonify({'paid': True, 'signature': assinatura, 'explorer': sol.link_explorer(assinatura)})
+
+
+def _confirmar_pagamento_solana(tx, assinatura):
+    """Marca a transação como paga (escrow) a partir de uma assinatura on-chain válida."""
     tx.sol_payment_sig = assinatura
     tx.payment_status = 'escrow'
     tx.escrow_release_date = datetime.utcnow() + timedelta(days=app.config['ESCROW_RELEASE_DAYS'])
@@ -1587,7 +1593,36 @@ def solana_status(uid):
         content=f'O comprador pagou {tx.sol_amount_usdc} USDC via Solana. Combine a entrega.',
         link=f'/transaction/{tx.uid}'))
     db.session.commit()
-    return jsonify({'paid': True, 'signature': assinatura, 'explorer': sol.link_explorer(assinatura)})
+
+
+@app.route('/solana/confirm/<uid>', methods=['POST'])
+@login_required
+def solana_confirm(uid):
+    """Fallback: comprador enviou USDC manualmente pela carteira e cola a hash da transação."""
+    tx = Transaction.query.filter_by(uid=uid).first_or_404()
+    if current_user.id != tx.buyer_id:
+        abort(403)
+    if tx.payment_status != 'awaiting_payment' or tx.payment_method != 'solana':
+        flash('Esta transação não está aguardando pagamento Solana.', 'warning')
+        return redirect(url_for('transaction_detail', uid=uid))
+    assinatura = request.form.get('signature', '').strip()
+    if not assinatura:
+        flash('Cole a assinatura (hash) da transação.', 'danger')
+        return redirect(url_for('transaction_detail', uid=uid))
+    if Transaction.query.filter(Transaction.sol_payment_sig == assinatura, Transaction.id != tx.id).first():
+        flash('Essa assinatura já foi usada em outra transação.', 'danger')
+        return redirect(url_for('transaction_detail', uid=uid))
+    try:
+        ok = sol.verificar_assinatura(assinatura, tx.sol_amount_usdc)
+    except Exception as e:
+        app.logger.warning(f'Solana verificar_assinatura: {e}')
+        ok = False
+    if not ok:
+        flash('Não encontrei essa transação na rede com o valor esperado em USDC para a carteira da plataforma. Confira a hash e aguarde a confirmação.', 'danger')
+        return redirect(url_for('transaction_detail', uid=uid))
+    _confirmar_pagamento_solana(tx, assinatura)
+    flash('Pagamento confirmado na blockchain! O valor está em custódia.', 'success')
+    return redirect(url_for('transaction_detail', uid=uid))
 
 
 # ─── Mídia (imagens no banco) ───

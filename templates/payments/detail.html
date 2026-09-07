@@ -110,6 +110,21 @@
           <p style="color:var(--text-secondary);margin-bottom:1rem;">Escaneie com a carteira Phantom (rede devnet):</p>
           <img src="{{ url_for('solana_qr', uid=tx.uid) }}" alt="QR Solana Pay" style="width:230px;height:230px;border-radius:12px;border:4px solid #14F195;margin-bottom:1rem;">
           <p id="sol-aguardando" style="color:var(--warning);font-size:.9rem;">⏳ Aguardando confirmação on-chain...</p>
+          <details style="text-align:left;margin-top:1rem;background:var(--bg-2);border:1px solid var(--bg-3);border-radius:8px;padding:.8rem 1rem;">
+            <summary style="cursor:pointer;color:var(--text-primary);font-weight:600;">O QR não abriu na carteira? Pague manualmente</summary>
+            <ol style="color:var(--text-secondary);font-size:.85rem;margin:.8rem 0 0 1.1rem;padding:0;line-height:1.7;">
+              <li>No Phantom (rede devnet), toque em <strong>Enviar</strong>, escolha <strong>USDC</strong>.</li>
+              <li>Destinatário: <code id="sol-addr" style="color:#14F195;word-break:break-all;">{{ solana_platform_wallet }}</code>
+                <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('sol-addr').textContent)" class="btn btn-secondary btn-sm" style="margin-left:6px;">Copiar</button></li>
+              <li>Valor: <strong style="color:var(--text-primary);">{{ '%.2f'|format(tx.sol_amount_usdc) }} USDC</strong>.</li>
+              <li>Depois de enviar, abra a transação no Phantom, copie a <strong>assinatura</strong> (hash) e cole abaixo.</li>
+            </ol>
+            <form method="POST" action="{{ url_for('solana_confirm', uid=tx.uid) }}" style="display:flex;gap:8px;margin-top:.8rem;">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="text" name="signature" class="form-control" placeholder="Cole a assinatura da transação" required style="flex:1;">
+              <button type="submit" class="btn btn-primary">Confirmar</button>
+            </form>
+          </details>
           <div id="sol-pago" style="display:none;background:rgba(20,241,149,.1);border:1px solid #14F195;border-radius:8px;padding:1rem;">
             <p style="color:#14F195;font-weight:700;margin-bottom:.5rem;">✅ Pagamento confirmado na blockchain!</p>
             <a id="sol-explorer" href="#" target="_blank" rel="noopener" style="color:#14F195;font-size:.85rem;word-break:break-all;">Ver transação no Solana Explorer →</a>
