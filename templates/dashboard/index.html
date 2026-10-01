@@ -45,14 +45,13 @@
             <div class="card-body">
                 {% if listings %}
                     <div style="max-height: 400px; overflow-y: auto;">
-                        {% for listing in listings %}
+                        {% for listing in listings[:5] %}
                             <div class="mb-3 pb-3" style="border-bottom: 1px solid var(--border);">
                                 <a href="{{ url_for('listing_detail', uid=listing.uid) }}" style="color: var(--accent); text-decoration: none;">
                                     <h6 style="color: var(--text-primary); margin: 0 0 0.3rem 0;">{{ listing.title[:40] }}{% if listing.title|length > 40 %}...{% endif %}</h6>
                                 </a>
-                                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 0.85rem;">
-                                    <span style="color: var(--accent); font-weight: 600;">{{ listing.lot_total|brl }}</span>
-                                    <a href="{{ url_for('listing_edit', uid=listing.uid) }}" class="btn btn-secondary btn-sm" style="margin-left:auto; text-decoration:none;">Editar</a>
+                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
+                                    <span style="color: var(--accent); font-weight: 600;">{{ listing.price|brl }}</span>
                                     <span class="badge-status {% if listing.status == 'sold' %}badge-sold{% elif listing.status == 'draft' %}badge-draft{% else %}badge-active{% endif %}">
                                         {{ listing.status|status_pt }}
                                     </span>

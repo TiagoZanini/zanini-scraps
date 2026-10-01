@@ -55,13 +55,25 @@
                         <div class="form-group">
                             <label class="form-label">Unidade</label>
                             <select name="unit" class="form-control">
-                                {% for u, nome in [('kg','Quilograma (kg)'),('ton','Tonelada (ton)'),('un','Unidade (un)'),('m2','Metro² (m²)'),('m3','Metro³ (m³)'),('ml','Metro linear (ml)'),('lt','Litro (lt)')] %}
-                                <option value="{{ u }}" {{ 'selected' if listing.unit == u }}>{{ nome }}</option>
+                                {% for u in ['kg','ton','un','m2','m3','ml','lt'] %}
+                                <option value="{{ u }}" {{ 'selected' if listing.unit == u }}>{{ u }}</option>
                                 {% endfor %}
                             </select>
                         </div>
                     </div>
-                    {% include "listings/_price_fields.html" %}
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Preço (R$) *</label>
+                            <input type="number" name="price" class="form-control" step="0.01" value="{{ listing.price }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Tipo</label>
+                            <select name="price_type" class="form-control">
+                                <option value="total" {{ 'selected' if listing.price_type == 'total' }}>Total</option>
+                                <option value="por_unidade" {{ 'selected' if listing.price_type == 'por_unidade' }}>Por Unidade</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="card" style="margin-bottom:24px;">

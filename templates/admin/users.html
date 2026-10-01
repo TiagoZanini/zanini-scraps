@@ -39,11 +39,7 @@
                         <span class="badge-status badge-draft">Pendente</span>
                         {% endif %}
                     </td>
-                    <td style="white-space:nowrap;"><a href="{{ url_for('seller_profile', uid=user.uid) }}" class="btn btn-sm btn-secondary">Ver</a>
-                        <form method="POST" action="{{ url_for('admin_reset_link', uid=user.uid) }}" style="display:inline;">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-sm btn-secondary" title="Gera um link de nova senha para enviar ao usuário">Link de senha</button>
-                        </form></td>
+                    <td><a href="{{ url_for('seller_profile', uid=user.uid) }}" class="btn btn-sm btn-secondary">Ver</a></td>
                 </tr>
                 {% endfor %}
             </tbody>

@@ -17,8 +17,6 @@ from werkzeug.utils import secure_filename
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
 from flask_wtf import CSRFProtect
-from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
-from werkzeug.middleware.proxy_fix import ProxyFix
 
 from config import Config
 from modules.models import (db, User, Category, Listing, ListingImage,
@@ -117,7 +115,6 @@ os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'listings'), exist_ok=True
 os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'avatars'), exist_ok=True)
 os.makedirs(os.path.join(os.path.dirname(__file__), 'data'), exist_ok=True)
 
-app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)  # Railway termina TLS: links externos em https
 db.init_app(app)
 app.register_blueprint(api_blueprint)
 csrf.exempt(api_blueprint)  # API usa Bearer JWT, sem cookies
@@ -354,79 +351,6 @@ def home():
     }
     return render_template('home.html', featured=featured, recent=recent,
                            most_viewed=most_viewed, stats=stats)
-
-
-# ─── RECUPERAÇÃO DE SENHA ───
-_RESET_MAX_AGE = 3600  # 1 hora
-
-def _reset_serializer():
-    return URLSafeTimedSerializer(app.config['SECRET_KEY'], salt='zs-reset-senha')
-
-def gerar_link_reset(user):
-    # o fragmento do hash atual torna o link de uso único: depois de trocar a senha, ele deixa de valer
-    token = _reset_serializer().dumps({'u': user.uid, 'h': user.password_hash[-16:]})
-    return url_for('reset_password', token=token, _external=True)
-
-def _usuario_do_token(token):
-    try:
-        dados = _reset_serializer().loads(token, max_age=_RESET_MAX_AGE)
-    except (BadSignature, SignatureExpired):
-        return None
-    user = User.query.filter_by(uid=dados.get('u')).first()
-    if not user or user.password_hash[-16:] != dados.get('h'):
-        return None
-    return user
-
-
-@app.route('/esqueci-senha', methods=['GET', 'POST'])
-def forgot_password():
-    if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
-    if request.method == 'POST':
-        email = request.form.get('email', '').strip().lower()
-        user = User.query.filter(db.func.lower(User.email) == email).first() if email else None
-        if user and user.is_active:
-            link = gerar_link_reset(user)
-            send_email(user.email, 'Redefinição de senha',
-                       f'<p>Olá, {user.display_name}.</p>'
-                       f'<p>Recebemos um pedido para redefinir a senha da sua conta no Zanini Scraps.</p>'
-                       f'<p><a href="{link}">Clique aqui para criar uma nova senha</a>. O link vale por 1 hora e pode ser usado uma vez.</p>'
-                       f'<p>Se não foi você, ignore este e-mail. Sua senha atual continua valendo.</p>')
-            if not app.config.get('MAIL_ENABLED'):
-                app.logger.warning(f'Reset de senha pedido para user {user.uid}, mas o envio de e-mail não está configurado.')
-        # mesma resposta exista ou não a conta (não revela e-mails cadastrados)
-        flash('Se existir uma conta com esse e-mail, enviamos um link para criar uma nova senha. Confira também o spam.', 'info')
-        return redirect(url_for('login'))
-    return render_template('auth/forgot.html')
-
-
-@app.route('/redefinir-senha/<token>', methods=['GET', 'POST'])
-def reset_password(token):
-    user = _usuario_do_token(token)
-    if not user:
-        flash('Link inválido ou expirado. Peça um novo.', 'danger')
-        return redirect(url_for('forgot_password'))
-    if request.method == 'POST':
-        senha = request.form.get('password', '')
-        if len(senha) < 6:
-            flash('A senha deve ter pelo menos 6 caracteres.', 'danger')
-        elif senha != request.form.get('password2', ''):
-            flash('As senhas não conferem.', 'danger')
-        else:
-            user.set_password(senha)
-            db.session.commit()
-            flash('Senha alterada! Entre com a nova senha.', 'success')
-            return redirect(url_for('login'))
-    return render_template('auth/reset.html', email=user.email)
-
-
-@app.route('/admin/users/<uid>/reset-link', methods=['POST'])
-@login_required
-@admin_required
-def admin_reset_link(uid):
-    user = User.query.filter_by(uid=uid).first_or_404()
-    flash(f'Link de nova senha para {user.email} (vale 1 hora, uso único): {gerar_link_reset(user)}', 'info')
-    return redirect(url_for('admin_users'))
 
 
 @app.route('/dashboard')

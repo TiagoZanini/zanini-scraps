@@ -69,7 +69,20 @@
                             </select>
                         </div>
                     </div>
-                    {% set listing = None %}{% include "listings/_price_fields.html" %}
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Preço (R$) *</label>
+                            <input type="number" name="price" class="form-control" step="0.01" placeholder="0,00" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Tipo de Preço</label>
+                            <select name="price_type" class="form-control" id="price_type">
+                                <option value="total">Preço total do lote</option>
+                                <option value="por_unidade">Preço por unidade (ex.: por m², por kg)</option>
+                            </select>
+                            <small class="form-text" id="price_hint">O valor informado é pelo lote inteiro.</small>
+                        </div>
+                    </div>
                     <div class="form-group">
                         <label class="form-label">Pedido Mínimo</label>
                         <input type="number" name="min_order" class="form-control" step="0.01" value="0" placeholder="0 = sem mínimo">
@@ -221,5 +234,14 @@ cepInput.addEventListener('blur', async () => {
 });
 
 // ── Dica do tipo de preço conforme a unidade ──
+const priceType = document.getElementById('price_type');
+const unitSel = document.querySelector('select[name=unit]');
+function atualizaHint() {
+    const u = unitSel.options[unitSel.selectedIndex].text;
+    document.getElementById('price_hint').textContent =
+        priceType.value === 'total' ? 'O valor informado é pelo lote inteiro.' : `O valor informado é por ${u}.`;
+}
+priceType.addEventListener('change', atualizaHint);
+unitSel.addEventListener('change', atualizaHint);
 </script>
 {% endblock %}
