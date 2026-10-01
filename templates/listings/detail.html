@@ -150,7 +150,7 @@
                         <span>{{ listing.created_at.strftime('%d/%m/%Y') }}</span>
                     </div>
 
-                    {% if current_user.is_authenticated %}
+                    {% if current_user.is_authenticated and current_user.id != listing.seller_id %}
                     <div style="margin-top:14px;">
                         <button type="button" class="btn btn-secondary btn-sm fav-toggle {{ 'is-fav' if is_favorited }}" data-listing="{{ listing.id }}" style="display:inline-flex;align-items:center;gap:6px;">
                             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="{{ 'currentColor' if is_favorited else 'none' }}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
@@ -160,6 +160,22 @@
                     {% endif %}
                 </div>
             </div>
+
+            {% if current_user.is_authenticated and current_user.id == listing.seller_id %}
+            <div class="card" style="margin-bottom:16px; border:1px solid var(--border-strong);">
+                <div class="card-body" style="display:flex; flex-direction:column; gap:10px;">
+                    <div style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted);">Este anúncio é seu &middot; {{ listing.status|status_pt }}</div>
+                    <a href="{{ url_for('listing_edit', uid=listing.uid) }}" class="btn btn-primary btn-block" style="display:flex; align-items:center; justify-content:center; gap:8px; text-decoration:none;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                        Editar anúncio
+                    </a>
+                    <form method="POST" action="{{ url_for('listing_delete', uid=listing.uid) }}" onsubmit="return confirm('Excluir este anúncio? Se ele tiver negociação vinculada, será apenas pausado.');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-secondary btn-block" style="color:var(--danger);">Excluir anúncio</button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
 
             <!-- Seller -->
             <div class="card">

@@ -10,8 +10,11 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 def _db_url():
     url = os.environ.get('DATABASE_URL', '')
-    if url.startswith('postgres://'):          # Railway usa postgres://, SQLAlchemy precisa de postgresql://
-        url = url.replace('postgres://', 'postgresql://', 1)
+    # Railway usa postgres://. Força o driver psycopg2 (instalado): o SQLAlchemy 2.1+ passou a usar psycopg 3 por padrão.
+    if url.startswith('postgres://'):
+        url = url.replace('postgres://', 'postgresql+psycopg2://', 1)
+    elif url.startswith('postgresql://'):
+        url = url.replace('postgresql://', 'postgresql+psycopg2://', 1)
     return url or f'sqlite:///{os.path.join(BASE_DIR, "data", "zanini_scraps.db")}'
 
 _IS_PROD = bool(os.environ.get('DATABASE_URL'))
