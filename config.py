@@ -66,4 +66,5 @@ class Config:
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME', '')   # seu e-mail
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', '')   # senha de app
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@zaniniscraps.com.br')
-    MAIL_ENABLED  = bool(os.environ.get('MAIL_USERNAME', ''))
+    RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')       # envio por API HTTPS (Railway bloqueia SMTP)
+    MAIL_ENABLED  = bool(RESEND_API_KEY or os.environ.get('MAIL_USERNAME', ''))

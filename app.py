@@ -98,19 +98,34 @@ def force_charset(response):
         response.headers['Content-Type'] = 'text/html; charset=utf-8'
     return response
 
-def send_email(to, subject, body_html):
-    """Envia e-mail silenciosamente — não quebra o fluxo se falhar."""
-    if not app.config.get('MAIL_ENABLED'):
-        return
+def _enviar_resend(to, subject, body_html):
+    import requests
+    r = requests.post('https://api.resend.com/emails', timeout=15,
+                      headers={'Authorization': f"Bearer {app.config['RESEND_API_KEY']}"},
+                      json={'from': app.config['MAIL_DEFAULT_SENDER'], 'to': [to],
+                            'subject': subject, 'html': body_html})
+    if r.status_code >= 300:
+        raise RuntimeError(f'Resend {r.status_code}: {r.text[:300]}')
+
+
+def _enviar_email(to, subject, body_html):
     try:
-        msg = MailMessage(
-            subject=f'[Zanini Scraps] {subject}',
-            recipients=[to],
-            html=body_html
-        )
-        mail.send(msg)
+        if app.config.get('RESEND_API_KEY'):
+            _enviar_resend(to, subject, body_html)
+        else:
+            with app.app_context():
+                mail.send(MailMessage(subject=subject, recipients=[to], html=body_html))
     except Exception as e:
         app.logger.warning(f'Falha ao enviar e-mail para {to}: {e}')
+
+
+def send_email(to, subject, body_html):
+    """Envia e-mail em segundo plano: nunca trava nem quebra a requisição.
+    Usa a API HTTPS do Resend quando RESEND_API_KEY existe (o Railway bloqueia SMTP); senão, SMTP."""
+    if not app.config.get('MAIL_ENABLED'):
+        return
+    import threading
+    threading.Thread(target=_enviar_email, args=(to, f'[Zanini Scraps] {subject}', body_html), daemon=True).start()
 
 # Ensure dirs
 os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'listings'), exist_ok=True)
