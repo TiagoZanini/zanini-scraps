@@ -27,6 +27,8 @@ class User(UserMixin, db.Model):
     document = db.Column(db.String(18), unique=True)
     phone = db.Column(db.String(20))
     avatar = db.Column(db.String(255))
+    avatar_data = db.Column(db.LargeBinary)      # foto guardada no banco (o disco do Railway é efêmero)
+    avatar_mime = db.Column(db.String(40))
 
     # Endereço
     cep = db.Column(db.String(10))
@@ -241,6 +243,9 @@ class Transaction(db.Model):
 
     # Asaas
     asaas_payment_id  = db.Column(db.String(40))
+    # estoque: quanto do lote esta negociação separou e se foi parte dele (anúncio segue ativo com o saldo)
+    reserved_qty      = db.Column(db.Float)
+    reserved_partial  = db.Column(db.Boolean, default=False)
     asaas_invoice_url = db.Column(db.String(300))
 
     # Solana (hackathon)

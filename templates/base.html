@@ -43,7 +43,7 @@
                 {% if unread_notifications > 0 %}<span class="badge">{{ unread_notifications }}</span>{% endif %}
             </a>
             <div class="user-menu" onclick="document.getElementById('user-dropdown').classList.toggle('show')">
-                <div class="user-avatar">{{ current_user.display_name[0]|upper }}</div>
+                {% if current_user.avatar_data %}<img src="{{ current_user.avatar }}" alt="" class="user-avatar" style="width:28px; height:28px; object-fit:cover; padding:0;">{% else %}<div class="user-avatar" style="width:28px; height:28px; font-size:12px;">{{ current_user.display_name[0]|upper }}</div>{% endif %}
                 {{ current_user.display_name }}
             </div>
             <div id="user-dropdown" class="dropdown-menu">

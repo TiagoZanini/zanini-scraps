@@ -18,6 +18,7 @@ from modules.models import (
     Proposal, Transaction, Favorite, Notification
 )
 from modules import mercadopago as mp
+from modules import estoque
 
 api = Blueprint('api', __name__, url_prefix='/api')
 
@@ -367,14 +368,15 @@ def api_proposal_accept(uid):
     proposal = Proposal.query.filter_by(uid=uid, seller_id=user.id, status='pending').first_or_404()
     if not proposal.amount or proposal.amount <= 0:
         return jsonify({'error': 'Proposta sem valor válido.'}), 400
-    reservado = Listing.query.filter_by(id=proposal.listing_id, status='active').update({'status': 'reserved'})
+    reservado, _qtd, _parcial = estoque.reservar(proposal.listing_id, proposal.quantity)
     if not reservado:
         db.session.rollback()
         return jsonify({'error': 'Este lote não está mais disponível.'}), 400
     proposal.status = 'accepted'
-    Proposal.query.filter(Proposal.listing_id == proposal.listing_id,
-                          Proposal.id != proposal.id,
-                          Proposal.status == 'pending').update({'status': 'rejected'})
+    if not _parcial:
+        Proposal.query.filter(Proposal.listing_id == proposal.listing_id,
+                              Proposal.id != proposal.id,
+                              Proposal.status == 'pending').update({'status': 'rejected'})
     commission = proposal.amount * current_app.config['COMMISSION_RATE']
     tx = Transaction(
         proposal_id=proposal.id,
@@ -387,6 +389,7 @@ def api_proposal_accept(uid):
         escrow_release_date=datetime.utcnow() + timedelta(days=current_app.config['ESCROW_RELEASE_DAYS'])
     )
     db.session.add(tx)
+    estoque.marcar(tx, _qtd, _parcial)
     db.session.flush()  # garante tx.uid antes de montar o link
     db.session.add(Notification(
         user_id=proposal.buyer_id, type='proposal',
@@ -419,7 +422,7 @@ def api_buy_now(uid):
         return jsonify({'error': 'Não pode comprar o próprio lote'}), 403
     if not listing.price or listing.price <= 0:
         return jsonify({'error': 'Lote sem preço válido.'}), 400
-    reservado = Listing.query.filter_by(id=listing.id, status='active').update({'status': 'reserved'})
+    reservado, _qtd, _parcial = estoque.reservar(listing.id)
     if not reservado:
         db.session.rollback()
         return jsonify({'error': 'Este lote acabou de ser reservado por outro comprador.'}), 409
@@ -436,6 +439,7 @@ def api_buy_now(uid):
         escrow_release_date=datetime.utcnow() + timedelta(days=current_app.config['ESCROW_RELEASE_DAYS'])
     )
     db.session.add(tx)
+    estoque.marcar(tx, _qtd, _parcial)
     db.session.flush()
     db.session.add(Notification(
         user_id=listing.seller_id, type='transaction',
@@ -527,8 +531,7 @@ def api_transaction_pay(uid):
         tx.payment_method = 'pix'
         tx.mp_qr_code = 'SIMULADO-QR-CODE'
         tx.mp_qr_base64 = ''
-        if listing:
-            listing.status = 'reserved'
+        estoque.garantir_reserva(tx)
         db.session.commit()
         return jsonify({'transaction': _tx_dict(tx, user.id), 'test_mode': True})
 
@@ -543,9 +546,7 @@ def api_transaction_cancel(uid):
         Transaction.payment_status.in_(['pending', 'awaiting_payment'])
     ).first_or_404()
     tx.payment_status = 'cancelled'
-    listing = tx.listing_ref
-    if listing and listing.status == 'reserved':
-        listing.status = 'active'
+    estoque.liberar(tx)
     if tx.proposal:
         tx.proposal.status = 'rejected'
     outro = tx.seller_id if user.id == tx.buyer_id else tx.buyer_id
@@ -568,12 +569,7 @@ def api_confirm_delivery(uid):
     tx.logistics_status = 'confirmed'
     tx.delivery_date = datetime.utcnow()
 
-    proposal = Proposal.query.get(tx.proposal_id) if tx.proposal_id else None
-    _lid = proposal.listing_id if proposal else tx.listing_id
-    if _lid:
-        listing = Listing.query.get(_lid)
-        if listing:
-            listing.status = 'sold'
+    estoque.concluir(tx)
 
     from app import executar_repasse
     executar_repasse(tx)

@@ -37,8 +37,12 @@
                         {% endif %}
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Avatar</label>
-                        <input type="file" name="avatar" class="form-control" accept="image/*">
+                        <label class="form-label">Foto do perfil</label>
+                        <div style="display:flex; align-items:center; gap:14px;">
+                            {% if current_user.avatar_data %}<img src="{{ current_user.avatar }}" alt="" class="user-avatar" style="width:64px; height:64px; object-fit:cover; padding:0;">{% else %}<div class="user-avatar" style="width:64px; height:64px; font-size:24px;">{{ current_user.display_name[0]|upper }}</div>{% endif %}
+                            <input type="file" name="avatar" class="form-control" accept="image/*" style="flex:1;">
+                        </div>
+                        <small style="color:var(--text-muted);">JPG ou PNG, até 5 MB. Clique em Salvar Alterações para aplicar.</small>
                     </div>
                 </div>
             </div>

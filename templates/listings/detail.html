@@ -182,7 +182,7 @@
                 <div class="card-header">Vendedor</div>
                 <div class="card-body">
                     <div class="detail-seller">
-                        <div class="user-avatar" style="width:48px; height:48px; font-size:18px;">{{ listing.seller.display_name[0]|upper }}</div>
+                        {% if listing.seller.avatar_data %}<img src="{{ listing.seller.avatar }}" alt="" class="user-avatar" style="width:48px; height:48px; object-fit:cover; padding:0;">{% else %}<div class="user-avatar" style="width:48px; height:48px; font-size:18px;">{{ listing.seller.display_name[0]|upper }}</div>{% endif %}
                         <div>
                             <a href="{{ url_for('seller_profile', uid=listing.seller.uid) }}" style="font-weight:600;">{{ listing.seller.name }}</a>
                             <div style="font-size:0.8rem; color:var(--text-muted);">{{ listing.seller.city or '—' }}{% if listing.seller.state %}/{{ listing.seller.state }}{% endif %}</div>

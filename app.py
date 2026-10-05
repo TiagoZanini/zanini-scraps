@@ -26,6 +26,7 @@ from modules.models import (db, User, Category, Listing, ListingImage,
 from modules import mercadopago as mp
 from modules import asaas
 from modules import solana_chain as sol
+from modules import estoque
 from modules.api import api as api_blueprint
 
 app = Flask(__name__)
@@ -760,7 +761,13 @@ def proposal_create(uid):
     if amount <= 0 or amount > 10_000_000:
         flash('Informe um valor válido para a proposta.', 'danger')
         return redirect(url_for('listing_detail', uid=uid))
-    quantity = float(request.form.get('quantity', listing.quantity) or listing.quantity)
+    try:
+        quantity = float(str(request.form.get('quantity') or listing.quantity).replace(',', '.'))
+    except ValueError:
+        quantity = listing.quantity
+    if quantity <= 0 or quantity > (listing.quantity or 0) + 1e-9:
+        flash(f'Quantidade inválida: o lote tem {_qtd(listing.quantity)} {_unidade(listing.unit, listing.quantity)} disponíveis.', 'danger')
+        return redirect(url_for('listing_detail', uid=uid))
     message = request.form.get('message', '').strip()
 
     ja_existe = Proposal.query.filter_by(listing_id=listing.id, buyer_id=current_user.id, status='pending').first()
@@ -823,15 +830,16 @@ def proposal_accept(uid):
         flash('Proposta sem valor válido — rejeite-a.', 'danger')
         return redirect(url_for('proposal_detail', uid=uid))
     # reserva atômica: só prossegue se o lote ainda estiver ativo (evita corrida)
-    reservado = Listing.query.filter_by(id=proposal.listing_id, status='active').update({'status': 'reserved'})
+    reservado, _qtd, _parcial = estoque.reservar(proposal.listing_id, proposal.quantity)
     if not reservado:
         db.session.rollback()
-        flash('Este lote não está mais disponível.', 'danger')
+        flash('Este lote não está mais disponível nessa quantidade. Peça ao comprador uma nova proposta com o saldo atual.', 'danger')
         return redirect(url_for('proposal_detail', uid=uid))
     proposal.status = 'accepted'
-    Proposal.query.filter(Proposal.listing_id == proposal.listing_id,
-                          Proposal.id != proposal.id,
-                          Proposal.status == 'pending').update({'status': 'rejected'})
+    if not _parcial:  # lote inteiro vendido: as outras propostas perdem o objeto
+        Proposal.query.filter(Proposal.listing_id == proposal.listing_id,
+                              Proposal.id != proposal.id,
+                              Proposal.status == 'pending').update({'status': 'rejected'})
 
     commission = proposal.amount * app.config['COMMISSION_RATE']
     tx = Transaction(
@@ -845,6 +853,7 @@ def proposal_accept(uid):
         escrow_release_date=datetime.utcnow() + timedelta(days=app.config['ESCROW_RELEASE_DAYS'])
     )
     db.session.add(tx)
+    estoque.marcar(tx, _qtd, _parcial)
 
     notif = Notification(
         user_id=proposal.buyer_id,
@@ -909,16 +918,17 @@ def proposal_accept_counter(uid):
         flash('Contraproposta sem valor válido.', 'danger')
         return redirect(url_for('proposal_detail', uid=uid))
     # reserva atômica: só prossegue se o lote ainda estiver ativo (evita corrida)
-    reservado = Listing.query.filter_by(id=proposal.listing_id, status='active').update({'status': 'reserved'})
+    reservado, _qtd, _parcial = estoque.reservar(proposal.listing_id, proposal.quantity)
     if not reservado:
         db.session.rollback()
-        flash('Este lote não está mais disponível.', 'danger')
+        flash('Este lote não está mais disponível nessa quantidade. Peça ao comprador uma nova proposta com o saldo atual.', 'danger')
         return redirect(url_for('proposal_detail', uid=uid))
     proposal.status = 'accepted'
     proposal.amount = proposal.counter_amount
-    Proposal.query.filter(Proposal.listing_id == proposal.listing_id,
-                          Proposal.id != proposal.id,
-                          Proposal.status == 'pending').update({'status': 'rejected'})
+    if not _parcial:  # lote inteiro vendido: as outras propostas perdem o objeto
+        Proposal.query.filter(Proposal.listing_id == proposal.listing_id,
+                              Proposal.id != proposal.id,
+                              Proposal.status == 'pending').update({'status': 'rejected'})
 
     commission = proposal.amount * app.config['COMMISSION_RATE']
     tx = Transaction(
@@ -932,6 +942,7 @@ def proposal_accept_counter(uid):
         escrow_release_date=datetime.utcnow() + timedelta(days=app.config['ESCROW_RELEASE_DAYS'])
     )
     db.session.add(tx)
+    estoque.marcar(tx, _qtd, _parcial)
     db.session.commit()
     flash('Contraproposta aceita! Transação criada.', 'success')
     return redirect(url_for('proposal_detail', uid=uid))
@@ -1178,12 +1189,7 @@ def transaction_pay(uid):
     # ── Modo simulado (sem credenciais MP configuradas) ──
     tx.payment_status = 'escrow'
     tx.escrow_release_date = datetime.utcnow() + timedelta(days=app.config['ESCROW_RELEASE_DAYS'])
-    proposal = Proposal.query.get(tx.proposal_id) if tx.proposal_id else None
-    _lid = proposal.listing_id if proposal else tx.listing_id
-    if _lid:
-        listing = Listing.query.get(_lid)
-        if listing:
-            listing.status = 'reserved'
+    estoque.garantir_reserva(tx)
     db.session.commit()
     flash(f'[MODO TESTE] Pagamento via {method.upper()} simulado.', 'warning')
     return redirect(url_for('transaction_detail', uid=uid))
@@ -1200,9 +1206,7 @@ def transaction_cancel(uid):
     ).first_or_404()
 
     tx.payment_status = 'cancelled'
-    listing = tx.listing_ref
-    if listing and listing.status == 'reserved':
-        listing.status = 'active'
+    estoque.liberar(tx)
     if tx.proposal:
         tx.proposal.status = 'rejected'
 
@@ -1226,12 +1230,7 @@ def confirm_delivery(uid):
     tx.logistics_status = 'confirmed'
     tx.delivery_date = datetime.utcnow()
 
-    proposal = Proposal.query.get(tx.proposal_id) if tx.proposal_id else None
-    _lid = proposal.listing_id if proposal else tx.listing_id
-    if _lid:
-        listing = Listing.query.get(_lid)
-        if listing:
-            listing.status = 'sold'
+    estoque.concluir(tx)
 
     executar_repasse(tx)
     db.session.commit()
@@ -1297,11 +1296,14 @@ def profile():
             current_user.solana_wallet = solana_wallet
 
         avatar = request.files.get('avatar')
-        if avatar and allowed_file(avatar.filename):
-            ext = avatar.filename.rsplit('.', 1)[1].lower()
-            fname = f"{current_user.uid}.{ext}"
-            avatar.save(os.path.join(app.config['UPLOAD_FOLDER'], 'avatars', fname))
-            current_user.avatar = f'/static/uploads/avatars/{fname}'
+        if avatar and avatar.filename and allowed_file(avatar.filename):
+            dados = avatar.read()
+            if dados and len(dados) <= 5 * 1024 * 1024:
+                current_user.avatar_data = dados
+                current_user.avatar_mime = avatar.mimetype if (avatar.mimetype or '').startswith('image/') else 'image/jpeg'
+                current_user.avatar = f'/avatar/{current_user.uid}?v={int(datetime.utcnow().timestamp())}'
+            else:
+                flash('A foto precisa ter até 5 MB.', 'warning')
 
         db.session.commit()
         flash('Perfil atualizado!', 'success')
@@ -1351,9 +1353,7 @@ def asaas_webhook():
     if tx.payment_status in ('pending', 'awaiting_payment'):
         tx.payment_status = 'escrow'
         tx.escrow_release_date = datetime.utcnow() + timedelta(days=app.config['ESCROW_RELEASE_DAYS'])
-        listing = tx.listing_ref
-        if listing and listing.status == 'active':
-            listing.status = 'reserved'
+        estoque.garantir_reserva(tx)
         db.session.add(Notification(
             user_id=tx.buyer_id, type='payment',
             title='Pagamento confirmado!',
@@ -1406,12 +1406,7 @@ def mp_webhook():
             tx.escrow_release_date = datetime.utcnow() + timedelta(days=app.config['ESCROW_RELEASE_DAYS'])
 
             # Marcar listing como reservado
-            proposal = Proposal.query.get(tx.proposal_id) if tx.proposal_id else None
-            _lid = proposal.listing_id if proposal else tx.listing_id
-            if _lid:
-                listing = Listing.query.get(_lid)
-                if listing:
-                    listing.status = 'reserved'
+            estoque.garantir_reserva(tx)
 
             # Notificar comprador e vendedor
             db.session.add(Notification(
@@ -1545,7 +1540,7 @@ def buy_now(uid):
         flash('Este lote está sem preço válido.', 'danger')
         return redirect(url_for('listing_detail', uid=uid))
     # reserva atômica (evita duas compras simultâneas)
-    reservado = Listing.query.filter_by(id=listing.id, status='active').update({'status': 'reserved'})
+    reservado, _qtd, _parcial = estoque.reservar(listing.id)
     if not reservado:
         db.session.rollback()
         flash('Este lote acabou de ser reservado por outro comprador.', 'danger')
@@ -1564,6 +1559,7 @@ def buy_now(uid):
         escrow_release_date=datetime.utcnow() + timedelta(days=app.config['ESCROW_RELEASE_DAYS'])
     )
     db.session.add(tx)
+    estoque.marcar(tx, _qtd, _parcial)
     db.session.flush()
 
     notif = Notification(
@@ -1608,12 +1604,7 @@ def cron_release_escrow():
         tx.payment_status = 'released'
         tx.delivery_date = now
 
-        proposal = Proposal.query.get(tx.proposal_id) if tx.proposal_id else None
-        _lid = proposal.listing_id if proposal else tx.listing_id
-        if _lid:
-            listing = Listing.query.get(_lid)
-            if listing:
-                listing.status = 'sold'
+        estoque.concluir(tx)
 
         executar_repasse(tx)
 
@@ -1742,9 +1733,7 @@ def _confirmar_pagamento_solana(tx, assinatura):
     tx.sol_payment_sig = assinatura
     tx.payment_status = 'escrow'
     tx.escrow_release_date = datetime.utcnow() + timedelta(days=app.config['ESCROW_RELEASE_DAYS'])
-    listing = tx.listing_ref
-    if listing and listing.status == 'active':
-        listing.status = 'reserved'
+    estoque.garantir_reserva(tx)
     db.session.add(Notification(
         user_id=tx.seller_id, type='payment', title='Pagamento recebido on-chain!',
         content=f'O comprador pagou {tx.sol_amount_usdc} USDC via Solana. Combine a entrega.',
@@ -1783,6 +1772,17 @@ def solana_confirm(uid):
 
 
 # ─── Mídia (imagens no banco) ───
+@app.route('/avatar/<uid>')
+def avatar_image(uid):
+    from flask import Response
+    u = User.query.filter_by(uid=uid).first_or_404()
+    if not u.avatar_data:
+        abort(404)
+    resp = Response(u.avatar_data, mimetype=u.avatar_mime or 'image/jpeg')
+    resp.headers['Cache-Control'] = 'public, max-age=86400'
+    return resp
+
+
 @app.route('/media/<int:img_id>')
 def media_image(img_id):
     from flask import Response
@@ -1838,6 +1838,10 @@ _AUTO_MIGRATE_STMTS = [
     "ALTER TABLE users        ADD COLUMN IF NOT EXISTS pix_key_type        VARCHAR(20)",
     "ALTER TABLE messages     ADD COLUMN IF NOT EXISTS listing_id          INTEGER      REFERENCES listings(id)",
     "ALTER TABLE listing_images ADD COLUMN IF NOT EXISTS data              BYTEA",
+    "ALTER TABLE users        ADD COLUMN IF NOT EXISTS avatar_data       BYTEA",
+    "ALTER TABLE users        ADD COLUMN IF NOT EXISTS avatar_mime       VARCHAR(40)",
+    "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS reserved_qty      DOUBLE PRECISION",
+    "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS reserved_partial  BOOLEAN DEFAULT FALSE",
     "ALTER TABLE listing_images ADD COLUMN IF NOT EXISTS mimetype          VARCHAR(40)",
     "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS asaas_payment_id    VARCHAR(40)",
     "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS asaas_invoice_url   VARCHAR(300)",
