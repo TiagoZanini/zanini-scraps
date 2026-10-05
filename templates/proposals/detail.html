@@ -1,6 +1,18 @@
 {% extends "base.html" %}
 
-{% block title %}Proposta — {{ proposal.listing.title }}{% endblock %}
+{% block title %}Proposta — {{ proposal.listing.title }}<script>
+var CHAT_LISTING = '{{ proposal.listing.uid }}', CHAT_OTHER = '{{ other_uid }}';
+function renderMsg(m) {
+  var row = document.createElement('div'); row.dataset.id = m.id; row.className = 'chat-message ' + (m.mine ? 'sent' : 'received');
+  var h = document.createElement('div'); h.style.cssText = 'font-size:0.8rem;color:var(--text-muted);margin-bottom:0.2rem;';
+  var n = document.createElement('strong'); n.style.color = 'var(--text-primary)'; n.textContent = m.sender + ' ';
+  var w = document.createElement('span'); w.textContent = m.when; h.appendChild(n); h.appendChild(w);
+  var c = document.createElement('div'); c.style.cssText = 'background:var(--bg-secondary);padding:0.8rem;border-radius:6px;color:var(--text-primary);white-space:pre-wrap;word-break:break-word;'; c.textContent = m.content;
+  row.appendChild(h); row.appendChild(c); return row;
+}
+</script>
+{% include "chat/_live.html" %}
+{% endblock %}
 
 {% block content %}
 <div class="page-content">
@@ -86,8 +98,25 @@
                             {% endif %}
                         {% endif %}
                     {% elif proposal.status == 'accepted' %}
-                        <div style="background: rgba(52, 211, 153, 0.1); border: 1px solid var(--success); color: var(--success); padding: 1rem; border-radius: 4px;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Esta proposta foi aceita. Prossiga para o pagamento.
+                        {% set pago = tx and tx.payment_status in ('escrow', 'released') %}
+                        <div style="background: rgba(52, 211, 153, 0.1); border: 1px solid var(--success); color: var(--success); padding: 1rem; border-radius: 4px; display:flex; flex-direction:column; gap:12px;">
+                            <span><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                            {% if current_user.id == proposal.buyer_id %}
+                                {% if pago %}Proposta aceita e paga. O valor está protegido até você confirmar o recebimento.
+                                {% elif tx and tx.payment_status == 'cancelled' %}Esta negociação foi cancelada.
+                                {% else %}O vendedor aceitou sua proposta. Faça o pagamento para garantir o lote.{% endif %}
+                            {% else %}
+                                {% if pago %}O comprador pagou. Combine a retirada ou entrega pelas mensagens.
+                                {% elif tx and tx.payment_status == 'cancelled' %}Esta negociação foi cancelada.
+                                {% else %}Você aceitou esta proposta. Aguardando o pagamento do comprador; o lote fica reservado.{% endif %}
+                            {% endif %}</span>
+                            {% if tx and tx.payment_status != 'cancelled' %}
+                                {% if current_user.id == proposal.buyer_id and not pago %}
+                                <a href="{{ url_for('transaction_detail', uid=tx.uid) }}" class="btn btn-primary btn-lg" style="text-decoration:none; text-align:center;">Ir para o pagamento &mdash; {{ tx.gross_amount|brl }}</a>
+                                {% else %}
+                                <a href="{{ url_for('transaction_detail', uid=tx.uid) }}" class="btn btn-secondary" style="text-decoration:none; text-align:center;">Ver negociação</a>
+                                {% endif %}
+                            {% endif %}
                         </div>
                     {% elif proposal.status == 'rejected' %}
                         <div style="background: rgba(248, 113, 113, 0.1); border: 1px solid var(--danger); color: var(--danger); padding: 1rem; border-radius: 4px;">
@@ -103,10 +132,10 @@
                     <h5 style="color: var(--text-primary); margin: 0;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg> Mensagens</h5>
                 </div>
 
-                <div class="chat-container">
+                <div class="chat-container" id="chat-box" style="max-height:420px; overflow-y:auto;">
                     {% if messages %}
                         {% for message in messages %}
-                            <div class="chat-message {% if message.sender_id == current_user.id %}sent{% else %}received{% endif %}">
+                            <div data-id="{{ message.id }}" class="chat-message {% if message.sender_id == current_user.id %}sent{% else %}received{% endif %}">
                                 <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.2rem;">
                                     <strong style="color: var(--text-primary);">{{ message.sender.name }}</strong>
                                     <span>{{ message.created_at|brdt('%d/%m às %H:%M') }}</span>
@@ -117,12 +146,12 @@
                             </div>
                         {% endfor %}
                     {% else %}
-                        <p style="color: var(--text-muted); text-align: center; padding: 2rem 0; margin: 0;">Nenhuma mensagem ainda</p>
+                        <p class="chat-empty" style="color: var(--text-muted); text-align: center; padding: 2rem 0; margin: 0;">Nenhuma mensagem ainda</p>
                     {% endif %}
                 </div>
 
                 <div style="border-top: 1px solid var(--border); background: var(--bg-card); padding: 1rem; border-radius: 0 0 8px 8px;">
-                    <form action="{{ url_for('chat_send', uid=proposal.uid) }}" method="POST">
+                    <form id="chat-form" action="{{ url_for('chat_send', uid=proposal.uid) }}" method="POST">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div style="display: flex; gap: 0.5rem;">
                             <input type="text" name="content" class="form-control" placeholder="Enviar mensagem..." style="background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-primary); flex: 1; padding: 0.5rem 0.75rem; border-radius: 4px;" required>

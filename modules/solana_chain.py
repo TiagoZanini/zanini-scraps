@@ -27,7 +27,8 @@ CLUSTER = os.environ.get('SOLANA_CLUSTER', 'devnet')
 
 
 def habilitado():
-    return bool(os.environ.get('SOLANA_PLATFORM_SECRET'))
+    # Desligada por padrão. Para religar: SOLANA_ENABLED=1 (além de SOLANA_PLATFORM_SECRET).
+    return os.environ.get('SOLANA_ENABLED') == '1' and bool(os.environ.get('SOLANA_PLATFORM_SECRET'))
 
 
 def _client():

@@ -87,6 +87,30 @@ def _status_pt(value):
 
 app.jinja_env.filters['status_pt'] = _status_pt
 
+_UNIDADES = {  # sigla: (singular, plural)
+    'un': ('unidade', 'unidades'), 'kg': ('kg', 'kg'), 'ton': ('tonelada', 'toneladas'),
+    'm2': ('m²', 'm²'), 'm3': ('m³', 'm³'), 'ml': ('metro linear', 'metros lineares'), 'lt': ('litro', 'litros'),
+}
+
+def _qtd(value):
+    """15.0 -> '15'; 2.5 -> '2,5'; 1500 -> '1.500'."""
+    try:
+        v = float(value or 0)
+    except (TypeError, ValueError):
+        return str(value)
+    s = f'{v:,.2f}'.rstrip('0').rstrip('.') if v != int(v) else f'{int(v):,}'
+    return s.replace(',', 'X').replace('.', ',').replace('X', '.')
+
+def _unidade(unit, qtd=2):
+    sing, plur = _UNIDADES.get(unit or '', (unit or '', unit or ''))
+    try:
+        return sing if float(qtd or 0) == 1 else plur
+    except (TypeError, ValueError):
+        return plur
+
+app.jinja_env.filters['qtd'] = _qtd
+app.jinja_env.filters['unidade'] = _unidade
+
 # ── Helper para strings Python (flash/notificações) ──
 def brl(value):
     return _brl(value)
@@ -782,11 +806,13 @@ def proposal_detail(uid):
     proposal = Proposal.query.filter_by(uid=uid).first_or_404()
     if current_user.id not in (proposal.buyer_id, proposal.seller_id) and not current_user.is_admin:
         abort(403)
-    messages = Message.query.filter_by(proposal_id=proposal.id).order_by(Message.created_at.asc()).all()
-    # Mark messages as read
-    Message.query.filter_by(proposal_id=proposal.id, receiver_id=current_user.id, is_read=False).update({'is_read': True})
-    db.session.commit()
-    return render_template('proposals/detail.html', proposal=proposal, messages=messages)
+    other_id = proposal.seller_id if current_user.id == proposal.buyer_id else proposal.buyer_id
+    messages = _mensagens_entre(proposal.listing_id, current_user.id, other_id).all()
+    _marcar_lidas(proposal.listing_id, other_id)
+    tx = (Transaction.query.filter_by(proposal_id=proposal.id)
+          .order_by(Transaction.created_at.desc()).first())
+    return render_template('proposals/detail.html', proposal=proposal, messages=messages, tx=tx,
+                           other_uid=(proposal.seller_user if other_id == proposal.seller_id else proposal.buyer).uid)
 
 
 @app.route('/proposal/<uid>/accept', methods=['POST'])
@@ -944,10 +970,55 @@ def chat_send(uid):
     )
     db.session.add(msg)
     db.session.commit()
+    if request.headers.get('X-Requested-With') == 'fetch':
+        return jsonify({'ok': True})
     return redirect(url_for('proposal_detail', uid=uid))
 
 
 # ─── CHAT POR ANÚNCIO (estilo OLX) ───
+def _mensagens_entre(listing_id, a_id, b_id):
+    """Toda a conversa entre duas pessoas sobre um anúncio (chat e proposta juntos)."""
+    return Message.query.filter(
+        Message.listing_id == listing_id,
+        ((Message.sender_id == a_id) & (Message.receiver_id == b_id)) |
+        ((Message.sender_id == b_id) & (Message.receiver_id == a_id))
+    ).order_by(Message.created_at.asc(), Message.id.asc())
+
+
+def _marcar_lidas(listing_id, sender_id):
+    Message.query.filter_by(listing_id=listing_id, receiver_id=current_user.id,
+                            sender_id=sender_id, is_read=False).update({'is_read': True})
+    db.session.commit()
+
+
+@app.route('/chat/poll')
+@login_required
+def chat_poll():
+    """Mensagens novas da conversa (id > after), para atualizar a tela sem recarregar."""
+    listing = Listing.query.filter_by(uid=request.args.get('listing', '')).first_or_404()
+    other = User.query.filter_by(uid=request.args.get('other', '')).first_or_404()
+    if current_user.id != listing.seller_id and other.id != listing.seller_id:
+        abort(403)
+    after = request.args.get('after', 0, type=int)
+    novas = _mensagens_entre(listing.id, current_user.id, other.id).filter(Message.id > after).all()
+    if any(m.receiver_id == current_user.id and not m.is_read for m in novas):
+        _marcar_lidas(listing.id, other.id)
+    return jsonify([{
+        'id': m.id, 'mine': m.sender_id == current_user.id, 'content': m.content,
+        'sender': m.sender.name, 'when': _brdt(m.created_at, '%d/%m %H:%M'),
+    } for m in novas])
+
+
+@app.route('/badges')
+@login_required
+def badges():
+    """Contadores do cabeçalho (mensagens e notificações não lidas)."""
+    return jsonify({
+        'messages': Message.query.filter_by(receiver_id=current_user.id, is_read=False).count(),
+        'notifications': Notification.query.filter_by(user_id=current_user.id, is_read=False).count(),
+    })
+
+
 @app.route('/chat/l/<listing_uid>')
 @app.route('/chat/l/<listing_uid>/<user_uid>')
 @login_required
@@ -965,15 +1036,8 @@ def chat_thread(listing_uid, user_uid=None):
     if other.id == current_user.id:
         return redirect(url_for('messages_list'))
 
-    msgs = Message.query.filter(
-        Message.listing_id == listing.id,
-        ((Message.sender_id == current_user.id) & (Message.receiver_id == other.id)) |
-        ((Message.sender_id == other.id) & (Message.receiver_id == current_user.id))
-    ).order_by(Message.created_at.asc()).all()
-
-    Message.query.filter_by(listing_id=listing.id, receiver_id=current_user.id,
-                            sender_id=other.id, is_read=False).update({'is_read': True})
-    db.session.commit()
+    msgs = _mensagens_entre(listing.id, current_user.id, other.id).all()
+    _marcar_lidas(listing.id, other.id)
     return render_template('chat/thread.html', listing=listing, other=other, messages=msgs)
 
 
@@ -991,6 +1055,8 @@ def chat_thread_send(listing_uid, user_uid):
             listing_id=listing.id, content=content
         ))
         db.session.commit()
+    if request.headers.get('X-Requested-With') == 'fetch':
+        return jsonify({'ok': True})
     return redirect(url_for('chat_thread', listing_uid=listing_uid, user_uid=user_uid))
 
 

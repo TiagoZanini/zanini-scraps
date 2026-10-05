@@ -42,7 +42,7 @@
             {{ listing.city or '—' }}{% if listing.state %}/{{ listing.state }}{% endif %}
         </div>
         <div class="listing-card-meta">
-            <span>{{ listing.quantity }} {{ listing.unit }}</span>
+            <span>Lote com {{ listing.quantity|qtd }} {{ listing.unit|unidade(listing.quantity) }}</span>
         </div>
         <div class="listing-card-badges">
             {% if listing.has_invoice %}
@@ -60,10 +60,10 @@
             <div>
                 {% if listing.price_type == 'por_unidade' %}
                 <span class="price">{{ (listing.price * listing.quantity)|brl }}</span>
-                <div class="unit" style="display:block;">{{ listing.price|brl }} / {{ listing.unit }}</div>
+                <div class="unit" style="display:block;">total do lote &middot; {{ listing.price|brl }} cada {{ listing.unit|unidade(1) }}</div>
                 {% else %}
                 <span class="price">{{ listing.price|brl }}</span>
-                <div class="unit" style="display:block;">lote completo</div>
+                <div class="unit" style="display:block;">total do lote</div>
                 {% endif %}
             </div>
             <span class="views">{{ listing.views }} views</span>

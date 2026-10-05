@@ -7,7 +7,7 @@
         <h1 class="page-title" style="margin:.5rem 0 .3rem;"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg> {{ other.name }}</h1>
         <p style="color:var(--text-muted);margin:0;">
             Sobre: <a href="{{ url_for('listing_detail', uid=listing.uid) }}" style="color:var(--accent);text-decoration:none;">{{ listing.title }}</a>
-            &bull; {{ listing.lot_total|brl }}{% if listing.price_type == 'por_unidade' %} <span style="color:var(--text-muted);">({{ listing.quantity }} {{ listing.unit }})</span>{% endif %} &bull; <span class="badge-status badge-{{ listing.status }}">{{ listing.status|status_pt }}</span>
+            &bull; {{ listing.lot_total|brl }} <span style="color:var(--text-muted);">pelo lote de {{ listing.quantity|qtd }} {{ listing.unit|unidade(listing.quantity) }}</span> &bull; <span class="badge-status badge-{{ listing.status }}">{{ listing.status|status_pt }}</span>
         </p>
     </div>
 
@@ -15,7 +15,7 @@
         <div class="card-body" style="max-height:420px;overflow-y:auto;" id="chat-box">
             {% if messages %}
                 {% for m in messages %}
-                <div style="display:flex;{% if m.sender_id == current_user.id %}justify-content:flex-end;{% endif %}margin-bottom:.75rem;">
+                <div data-id="{{ m.id }}" style="display:flex;{% if m.sender_id == current_user.id %}justify-content:flex-end;{% endif %}margin-bottom:.75rem;">
                     <div style="max-width:75%;padding:.6rem .9rem;border-radius:12px;
                                 {% if m.sender_id == current_user.id %}background:var(--accent);color:var(--bg-0);{% else %}background:var(--bg-secondary);color:var(--text-primary);{% endif %}">
                         <div style="white-space:pre-wrap;word-break:break-word;">{{ m.content }}</div>
@@ -24,17 +24,29 @@
                 </div>
                 {% endfor %}
             {% else %}
-                <p style="color:var(--text-muted);text-align:center;padding:2rem 0;">Nenhuma mensagem ainda. Diga olá!</p>
+                <p class="chat-empty" style="color:var(--text-muted);text-align:center;padding:2rem 0;">Nenhuma mensagem ainda. Diga olá!</p>
             {% endif %}
         </div>
     </div>
 
-    <form method="POST" action="{{ url_for('chat_thread_send', listing_uid=listing.uid, user_uid=other.uid) }}" style="display:flex;gap:.5rem;">
+    <form id="chat-form" method="POST" action="{{ url_for('chat_thread_send', listing_uid=listing.uid, user_uid=other.uid) }}" style="display:flex;gap:.5rem;">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="text" name="content" placeholder="Escreva sua mensagem..." required autofocus
                style="flex:1;padding:.7rem 1rem;border:1px solid var(--border);border-radius:8px;background:var(--bg-primary);color:var(--text-primary);">
         <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Enviar</button>
     </form>
 </div>
-<script>var b=document.getElementById('chat-box'); if(b) b.scrollTop=b.scrollHeight;</script>
+<script>
+var CHAT_LISTING = '{{ listing.uid }}', CHAT_OTHER = '{{ other.uid }}';
+function renderMsg(m) {
+  var row = document.createElement('div'); row.dataset.id = m.id;
+  row.style.cssText = 'display:flex;margin-bottom:.75rem;' + (m.mine ? 'justify-content:flex-end;' : '');
+  var b = document.createElement('div');
+  b.style.cssText = 'max-width:75%;padding:.6rem .9rem;border-radius:12px;' + (m.mine ? 'background:var(--accent);color:var(--bg-0);' : 'background:var(--bg-secondary);color:var(--text-primary);');
+  var t = document.createElement('div'); t.style.cssText = 'white-space:pre-wrap;word-break:break-word;'; t.textContent = m.content;
+  var w = document.createElement('div'); w.style.cssText = 'font-size:.72rem;opacity:.7;margin-top:.25rem;text-align:right;'; w.textContent = m.when;
+  b.appendChild(t); b.appendChild(w); row.appendChild(b); return row;
+}
+</script>
+{% include "chat/_live.html" %}
 {% endblock %}
